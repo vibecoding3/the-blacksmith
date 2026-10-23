@@ -13,6 +13,46 @@ const LEGENDARY_PRICE_MULTIPLIER = 5;
 const LEGENDARY_COLOR = "#ff9f1c";
 const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
+
+// The item being forged, drawn as the strike bar. Positions along the bar run
+// 0..1; the marker and golden zone stay within the workable part of the item.
+interface ForgeItem {
+  name: string;
+  workStart: number;
+  workEnd: number;
+  body: Path2D; // the part that gets hammered; the golden zone is clipped to it
+  drawFittings(): void; // parts that are not forged, such as a hilt
+}
+
+const SWORD: ForgeItem = (() => {
+  const cy = BAR.y + BAR.h / 2;
+  const bladeX = BAR.x + 67;
+  const tipX = BAR.x + 460;
+  const body = new Path2D();
+  body.moveTo(bladeX, BAR.y);
+  body.lineTo(tipX, BAR.y);
+  body.lineTo(BAR.x + BAR.w, cy);
+  body.lineTo(tipX, BAR.y + BAR.h);
+  body.lineTo(bladeX, BAR.y + BAR.h);
+  body.closePath();
+  return {
+    name: "sword",
+    workStart: (bladeX - BAR.x) / BAR.w,
+    workEnd: (tipX - BAR.x) / BAR.w,
+    body,
+    drawFittings() {
+      ctx.fillStyle = "#6b4423"; // grip
+      ctx.fillRect(BAR.x + 15, cy - 7, 40, 14);
+      ctx.fillStyle = "#c9a227"; // crossguard and pommel
+      ctx.fillRect(bladeX - 12, BAR.y - 12, 12, BAR.h + 24);
+      ctx.beginPath();
+      ctx.arc(BAR.x + 9, cy, 9, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  };
+})();
+
+let item: ForgeItem = SWORD;
 const GAUGE = { x: 700, y: 140, w: 24, h: 180 };
 
 // Blade temperature in °C, based on common steel forging practice:
@@ -72,7 +112,7 @@ function safeSet(key: string, value: string): void {
 
 function newZone(): void {
   zoneBaseWidth = Math.max(0.07, 0.18 - swords * 0.01);
-  zoneCenter = zoneBaseWidth / 2 + Math.random() * (1 - zoneBaseWidth);
+  zoneCenter = item.workStart + zoneBaseWidth / 2 + Math.random() * (item.workEnd - item.workStart - zoneBaseWidth);
 }
 
 // How workable the blade is: 1 at full forge heat, 0 at the cold limit.
@@ -85,6 +125,10 @@ function zoneWidth(): number {
   return zoneBaseWidth * (0.4 + 0.6 * warmth());
 }
 
+function clampToItem(pos: number): number {
+  return Math.min(item.workEnd, Math.max(item.workStart, pos));
+}
+
 function startGame(): void {
   state = "playing";
   timeLeft = ROUND_TIME;
@@ -93,7 +137,7 @@ function startGame(): void {
   legendaries = 0;
   swords = 0;
   strikes = [];
-  marker = 0.5;
+  marker = (item.workStart + item.workEnd) / 2;
   sparks = [];
   temp = FORGE_TEMP;
   inForge = false;
@@ -205,7 +249,7 @@ canvas.addEventListener("pointerdown", onAction);
 canvas.addEventListener("pointermove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * W; // canvas may be scaled by CSS
-  mouseTarget = Math.min(1, Math.max(0, (x - BAR.x) / BAR.w));
+  mouseTarget = clampToItem((x - BAR.x) / BAR.w);
 });
 canvas.addEventListener("pointerleave", () => (mouseTarget = null));
 
@@ -232,7 +276,7 @@ function update(dt: number): void {
     const right = RIGHT_KEYS.some((k) => held.has(k));
     const move = (right ? 1 : 0) - (left ? 1 : 0);
     if (move !== 0) {
-      marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
+      marker = clampToItem(marker + move * MARKER_SPEED * dt);
     } else if (mouseTarget !== null) {
       marker = mouseTarget; // follows the pointer directly
     }
@@ -369,15 +413,22 @@ function drawHeatGauge(): void {
 }
 
 function drawBar(): void {
-  ctx.fillStyle = "#111";
-  ctx.fillRect(BAR.x - 3, BAR.y - 3, BAR.w + 6, BAR.h + 6);
-  ctx.fillStyle = "#553322";
-  ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
+  item.drawFittings();
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 6;
+  ctx.lineJoin = "round";
+  ctx.stroke(item.body);
+  ctx.fillStyle = "#4a4a52";
+  ctx.fill(item.body);
 
+  // Golden zone, clipped to the item's outline
   const zw = zoneWidth();
   const zx = BAR.x + (zoneCenter - zw / 2) * BAR.w;
+  ctx.save();
+  ctx.clip(item.body);
   ctx.fillStyle = "#e0a030";
   ctx.fillRect(zx, BAR.y, zw * BAR.w, BAR.h);
+  ctx.restore();
 
   const mx = BAR.x + marker * BAR.w;
   ctx.fillStyle = "#fff";
