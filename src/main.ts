@@ -1,8 +1,10 @@
 // Blacksmith Simulator — steer the marker into the sweet spot and strike the hot blade.
 
+import { BAR, FORGE_ITEMS, type ForgeItem } from "./forgeItems";
+import { drawItemIcon } from "./icons";
 import {
-  INVENTORY_SIZE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory, itemName, sell, sellAll, unequip,
-  type Item, type ItemType, type Slot, type Tier,
+  INVENTORY_SIZE, LEGENDARY_COLOR, SLOT_FOR_TYPE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory,
+  itemName, sell, sellAll, unequip, type Item, type Slot, type Tier,
 } from "./items";
 
 type State = "menu" | "playing" | "over";
@@ -38,53 +40,7 @@ const FRAME_MS = 1000 / FPS;
 const ROUND_TIME = 60; // seconds
 const BASE_MAX_ENERGY = 100; // each hammer swing, hit or miss, costs 1
 const LEGENDARY_PRICE_MULTIPLIER = 5;
-const LEGENDARY_COLOR = "#ff9f1c";
-const BAR = { x: 150, y: 400, w: 500, h: 28 };
-
-// The item being forged, drawn as the strike bar. Positions along the bar run
-// 0..1; the marker and golden zone stay within the workable part of the item.
-// Bigger items need more hits, spread over one or more heats in the forge.
-interface ForgeItem {
-  type: ItemType;
-  hits: number; // hits in the golden zone needed to finish the item
-  heats: number; // heat cycles: the hits are split across this many heats
-  workStart: number;
-  workEnd: number;
-  body: Path2D; // the part that gets hammered; the golden zone is clipped to it
-  drawFittings(): void; // parts that are not forged, such as a hilt
-}
-
-const SWORD: ForgeItem = (() => {
-  const cy = BAR.y + BAR.h / 2;
-  const bladeX = BAR.x + 67;
-  const tipX = BAR.x + 460;
-  const body = new Path2D();
-  body.moveTo(bladeX, BAR.y);
-  body.lineTo(tipX, BAR.y);
-  body.lineTo(BAR.x + BAR.w, cy);
-  body.lineTo(tipX, BAR.y + BAR.h);
-  body.lineTo(bladeX, BAR.y + BAR.h);
-  body.closePath();
-  return {
-    type: "sword",
-    hits: 5,
-    heats: 2,
-    workStart: (bladeX - BAR.x) / BAR.w,
-    workEnd: (tipX - BAR.x) / BAR.w,
-    body,
-    drawFittings() {
-      ctx.fillStyle = "#6b4423"; // grip
-      ctx.fillRect(BAR.x + 15, cy - 7, 40, 14);
-      ctx.fillStyle = "#c9a227"; // crossguard and pommel
-      ctx.fillRect(bladeX - 12, BAR.y - 12, 12, BAR.h + 24);
-      ctx.beginPath();
-      ctx.arc(BAR.x + 9, cy, 9, 0, Math.PI * 2);
-      ctx.fill();
-    },
-  };
-})();
-
-let item: ForgeItem = SWORD;
+let item: ForgeItem = FORGE_ITEMS[0]; // what is being forged right now
 const GAUGE = { x: 700, y: 140, w: 24, h: 180 };
 
 // Blade temperature in °C, based on common steel forging practice:
@@ -112,7 +68,7 @@ const GLOW_COLORS: [number, [number, number, number]][] = [
 let state: State = "menu";
 let timeLeft = ROUND_TIME;
 let tab: Tab = "forge";
-let swords = 0; // swords forged this round
+let forged = 0; // items forged this round
 let strikes: number[] = []; // value of each hit on the current item (0..1)
 let heatCycle = 0; // which heat of the current item we are on (0-based)
 let marker = 0; // 0..1 position along the bar
@@ -135,14 +91,15 @@ let selectedId: number | null = null; // item selected on the inventory screen
 let notice = ""; // short feedback on the inventory and market screens (e.g. "Bag is full")
 let pointer = { x: -1, y: -1 }; // pointer position in layout units, for hover effects
 let pointerScreen = { x: -1, y: -1 }; // the same in screen pixels
-let legendaryChance = 0.05; // chance (0..1) that a finished sword turns out legendary
+let legendaryChance = 0.05; // chance (0..1) that a finished item turns out legendary
 let legendaries = 0;
 let endReason = ""; // headline on the game-over screen
 const logo = new Image();
 logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
 
 function newZone(): void {
-  zoneBaseWidth = Math.max(0.07, 0.18 - swords * 0.01);
+  // Shrinks as the round goes on, and never takes up more than 60% of the item's workable part.
+  zoneBaseWidth = Math.min(Math.max(0.07, 0.18 - forged * 0.01), (item.workEnd - item.workStart) * 0.6);
   zoneCenter = item.workStart + zoneBaseWidth / 2 + Math.random() * (item.workEnd - item.workStart - zoneBaseWidth);
 }
 
@@ -178,7 +135,7 @@ function startGame(): void {
   timeLeft = ROUND_TIME;
   energy = maxEnergy;
   legendaries = 0;
-  swords = 0;
+  forged = 0;
   strikes = [];
   heatCycle = 0;
   marker = (item.workStart + item.workEnd) / 2;
@@ -217,7 +174,7 @@ function strike(): void {
   // Strikes on cooler metal are worth less (down to 60% just above the cold limit).
   const accuracy = 0.6 + 0.4 * warmth();
   strikes.push(accuracy);
-  temp = Math.max(ROOM_TEMP, temp - STRIKE_COOL);
+  temp = Math.max(ROOM_TEMP, temp - STRIKE_COOL * item.coolMult);
   flash("Hit!");
 
   const n = Math.round(accuracy * 25) + 3;
@@ -232,8 +189,8 @@ function strike(): void {
 
   if (strikes.length >= item.hits) {
     const quality = strikes.reduce((a, b) => a + b, 0) / strikes.length;
-    let price = Math.round(quality * quality * 100);
-    // Quality is only revealed once the sword is finished.
+    let price = Math.max(1, Math.round(quality * quality * 100 * item.valueMult));
+    // Quality is only revealed once the item is finished.
     const legendary = Math.random() < legendaryChance;
     const tier: Tier = legendary ? "legendary" : "normal";
     if (legendary) {
@@ -249,13 +206,13 @@ function strike(): void {
       }
     }
     if (addItem(item.type, tier, price)) {
-      if (legendary) flash(`LEGENDARY sword! Worth ${price}g`, LEGENDARY_COLOR, 2.5);
-      else flash(`Sword forged! Worth ${price}g`);
+      if (legendary) flash(`LEGENDARY ${item.label.toLowerCase()}! Worth ${price}g`, LEGENDARY_COLOR, 2.5);
+      else flash(`${item.label} forged! Worth ${price}g`);
     } else {
       addGold(price);
-      flash(`Inventory full! Sword sold for ${price}g`, legendary ? LEGENDARY_COLOR : "#ffe080", 2.5);
+      flash(`Inventory full! ${item.label} sold for ${price}g`, legendary ? LEGENDARY_COLOR : "#ffe080", 2.5);
     }
-    swords++;
+    forged++;
     strikes = [];
     heatCycle = 0;
     temp = FORGE_TEMP; // a fresh blank comes out of the forge hot
@@ -263,10 +220,25 @@ function strike(): void {
   newZone();
 }
 
+// Picks the item to forge next. Only allowed between items, so no progress is lost.
+function chooseItem(index: number): void {
+  const next = FORGE_ITEMS[index];
+  if (!next || next === item) return;
+  if (strikes.length > 0) {
+    flash(`Finish the ${item.label.toLowerCase()} first!`);
+    return;
+  }
+  item = next;
+  heatCycle = 0;
+  marker = clampToItem(marker);
+  newZone();
+  if (state === "playing") flash(`Now forging: ${item.label}`);
+}
+
 function onAction(): void {
   if (state === "playing") {
     strike();
-    // Checked after the strike so a sword finished on the last swing still counts.
+    // Checked after the strike so an item finished on the last swing still counts.
     if (energy <= 0) endGame("Out of energy!");
   } else {
     startGame();
@@ -276,6 +248,7 @@ function onAction(): void {
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
 const RIGHT_KEYS = ["KeyD", "ArrowRight"];
 const REHEAT_KEYS = ["KeyS", "ArrowDown"];
+const ITEM_KEYS = ["Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0"];
 
 function reheat(): void {
   if (state === "playing" && !inForge && temp < FORGE_TEMP) inForge = true;
@@ -299,6 +272,10 @@ window.addEventListener("keydown", (e) => {
     return;
   }
   if (tab !== "forge") return;
+  if (ITEM_KEYS.includes(e.code)) {
+    chooseItem(ITEM_KEYS.indexOf(e.code));
+    return;
+  }
   if (e.code === "Space" || e.code === "Enter") {
     e.preventDefault();
     if (!e.repeat) onAction();
@@ -361,6 +338,10 @@ canvas.addEventListener("pointerdown", (e) => {
     marketClick(p);
     return;
   }
+  if (state === "playing" && pickerHit(p) >= 0) {
+    chooseItem(pickerHit(p));
+    return;
+  }
   // Strike exactly where the player clicked, even if no frame has run since the last move.
   mouseTarget = clampToItem((p.x - BAR.x) / BAR.w);
   if (state === "playing" && !inForge) marker = mouseTarget;
@@ -371,8 +352,11 @@ canvas.addEventListener("pointerdown", (e) => {
 canvas.addEventListener("pointermove", (e) => {
   pointerScreen = toScreen(e);
   pointer = toLayout(pointerScreen);
-  const screenHit = tab === "inventory" ? inventoryHit(pointer) : tab === "market" ? marketHit(pointer) : null;
-  const clickable = sidebarHit(pointerScreen) !== null || (!helpOpen && screenHit !== null);
+  const screenHit =
+    tab === "inventory" ? inventoryHit(pointer) !== null
+    : tab === "market" ? marketHit(pointer) !== null
+    : state === "playing" && pickerHit(pointer) >= 0;
+  const clickable = sidebarHit(pointerScreen) !== null || (!helpOpen && screenHit);
   canvas.style.cursor = clickable ? "pointer" : "";
   mouseTarget = tab === "forge" && pointerScreen.x >= SIDEBAR_W ? clampToItem((pointer.x - BAR.x) / BAR.w) : null;
 });
@@ -403,7 +387,7 @@ function update(dt: number): void {
       if (needsReheat()) heatCycle++; // the next heat's hits can start
     }
   } else {
-    temp = Math.max(ROOM_TEMP, temp - COOL_RATE * dt);
+    temp = Math.max(ROOM_TEMP, temp - COOL_RATE * item.coolMult * dt);
     const left = LEFT_KEYS.some((k) => held.has(k));
     const right = RIGHT_KEYS.some((k) => held.has(k));
     const move = (right ? 1 : 0) - (left ? 1 : 0);
@@ -545,7 +529,7 @@ function drawHeatGauge(): void {
 }
 
 function drawBar(): void {
-  item.drawFittings();
+  item.drawFittings(ctx);
   ctx.strokeStyle = "#111";
   ctx.lineWidth = 6;
   ctx.lineJoin = "round";
@@ -559,7 +543,7 @@ function drawBar(): void {
   ctx.save();
   ctx.clip(item.body);
   ctx.fillStyle = "#e0a030";
-  ctx.fillRect(zx, BAR.y, zw * BAR.w, BAR.h);
+  ctx.fillRect(zx, BAR.y - 60, zw * BAR.w, BAR.h + 120); // full height of any shape; the clip trims it
   ctx.restore();
 
   const mx = BAR.x + marker * BAR.w;
@@ -571,7 +555,7 @@ function drawBar(): void {
   const GAP = 30; // extra space between heats, holding the flame
   const totalW = (item.hits - 1) * PIP + (item.heats - 1) * GAP;
   let px = W / 2 - totalW / 2;
-  const py = BAR.y + 60;
+  const py = BAR.y + 74; // below the tallest item shapes
   let cycle = 0;
   for (let i = 0; i < item.hits; i++) {
     if (i > 0 && i === hitsByEndOfHeat(cycle)) {
@@ -587,6 +571,40 @@ function drawBar(): void {
     ctx.fill();
     px += PIP;
   }
+}
+
+// Item picker: a row of item icons along the top of the forge (keys 1-9, 0).
+const PICKER = { size: 40, gap: 6, y: 12 };
+const PICKER_X = W / 2 - (FORGE_ITEMS.length * (PICKER.size + PICKER.gap) - PICKER.gap) / 2;
+
+function pickerRect(i: number): Rect {
+  return { x: PICKER_X + i * (PICKER.size + PICKER.gap), y: PICKER.y, w: PICKER.size, h: PICKER.size };
+}
+
+function pickerHit(p: Point): number {
+  return FORGE_ITEMS.findIndex((_, i) => inRect(p, pickerRect(i)));
+}
+
+function drawPicker(): void {
+  FORGE_ITEMS.forEach((it, i) => {
+    const r = pickerRect(i);
+    const current = it === item;
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 6);
+    ctx.fillStyle = current ? "#4a3420" : inRect(pointer, r) ? "#3a2a22" : "rgba(26,18,16,0.85)";
+    ctx.fill();
+    ctx.lineWidth = current ? 2.5 : 1.5;
+    ctx.strokeStyle = current ? "#e0a030" : "#5a4030";
+    ctx.stroke();
+    drawItemIcon(ctx, it.type, false, r.x + 3, r.y + 3, r.w - 6);
+    drawText(`${(i + 1) % 10}`, r.x + 4, r.y + 11, 9, "#8a7a68", "left");
+  });
+  // Details of the hovered item, or of the current one
+  const shown = FORGE_ITEMS[pickerHit(pointer)] ?? item;
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  drawText(shown.label, W / 2, PICKER.y + PICKER.size + 18, 15, shown === item ? "#e0a030" : "#f5e6c8");
+  drawText(`${plural(shown.hits, "hit")} \u00b7 ${plural(shown.heats, "heat")} \u00b7 ${shown.valueMult}\u00d7 value \u00b7 ${shown.note}`,
+    W / 2, PICKER.y + PICKER.size + 35, 12, "#b8a888");
 }
 
 function drawFlame(x: number, y: number, color: string): void {
@@ -674,7 +692,12 @@ function drawSidebar(): void {
 
 const GRID = { x: 310, y: 95, cell: 64, gap: 10, cols: 6 };
 const SIDE_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
-const SLOT_RECTS: Record<Slot, Rect> = { weapon: { x: 190, y: 235, w: 64, h: 64 } };
+const SLOT_RECTS: Record<Slot, Rect> = {
+  head: { x: 194, y: 152, w: 56, h: 56 },
+  chest: { x: 194, y: 234, w: 56, h: 56 },
+  weapon: { x: 194, y: 316, w: 56, h: 56 },
+  offhand: { x: 194, y: 398, w: 56, h: 56 },
+};
 const DETAILS: Rect = { x: 310, y: 395, w: 434, h: 85 };
 const ACTION_BTN: Rect = { x: 646, y: 427, w: 88, h: 34 }; // Equip/Unequip in the inventory, Sell in the market
 const SELL_ALL_BTN: Rect = { x: 60, y: 420, w: 200, h: 40 };
@@ -696,8 +719,13 @@ function inventoryHit(p: Point): InventoryHit | null {
   const index = cellHit(p);
   if (index >= 0) return { kind: "cell", index };
   for (const slot of Object.keys(SLOT_RECTS) as Slot[]) if (inRect(p, SLOT_RECTS[slot])) return { kind: "slot", slot };
-  if (selectedId !== null && findItem(selectedId) && inRect(p, ACTION_BTN)) return { kind: "equip" };
+  if (selectedId !== null && canEquipOrUnequip(selectedId) && inRect(p, ACTION_BTN)) return { kind: "equip" };
   return null;
+}
+
+function canEquipOrUnequip(id: number): boolean {
+  const it = findItem(id);
+  return it !== undefined && (equippedSlotOf(id) !== undefined || SLOT_FOR_TYPE[it.type] !== undefined);
 }
 
 function inventoryClick(p: Point): void {
@@ -751,32 +779,8 @@ function marketClick(p: Point): void {
   }
 }
 
-// A small sword, drawn diagonally inside a square of the given size.
-function drawItemIcon(item: Item, x: number, y: number, size: number): void {
-  ctx.save();
-  ctx.translate(x + size / 2, y + size / 2);
-  ctx.rotate(-Math.PI / 4);
-  const k = size / 64;
-  ctx.scale(k, k);
-  const legendary = item.tier === "legendary";
-  if (legendary) {
-    ctx.shadowColor = LEGENDARY_COLOR;
-    ctx.shadowBlur = 12;
-  }
-  ctx.fillStyle = legendary ? "#ffd27a" : "#c8c8d0"; // blade
-  ctx.beginPath();
-  ctx.moveTo(-10, -3.5); ctx.lineTo(18, -3.5); ctx.lineTo(25, 0); ctx.lineTo(18, 3.5); ctx.lineTo(-10, 3.5);
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "#c9a227"; // crossguard and pommel
-  ctx.fillRect(-13, -10, 4, 20);
-  ctx.beginPath();
-  ctx.arc(-24, 0, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#6b4423"; // grip
-  ctx.fillRect(-21, -2.5, 8, 5);
-  ctx.restore();
+function drawIcon(it: Item, x: number, y: number, size: number): void {
+  drawItemIcon(ctx, it.type, it.tier === "legendary", x, y, size);
 }
 
 function drawCell(r: Rect, item: Item | undefined, label?: string): void {
@@ -788,7 +792,7 @@ function drawCell(r: Rect, item: Item | undefined, label?: string): void {
   ctx.lineWidth = selected ? 3 : 1.5;
   ctx.strokeStyle = selected ? "#ffe080" : item?.tier === "legendary" ? LEGENDARY_COLOR : "#5a4030";
   ctx.stroke();
-  if (item) drawItemIcon(item, r.x + 4, r.y + 4, r.w - 8);
+  if (item) drawIcon(item, r.x + 4, r.y + 4, r.w - 8);
   else if (label) drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 4, 11, "#5a4030");
 }
 
@@ -829,15 +833,19 @@ function drawInventory(): void {
   ctx.fill();
   for (const slot of Object.keys(SLOT_RECTS) as Slot[]) {
     const r = SLOT_RECTS[slot];
-    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 10, 14, "#b8a888");
+    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 14, "#b8a888");
     drawCell(r, inventory.equipped[slot], "empty");
   }
-  const weapon = inventory.equipped.weapon;
-  if (weapon) drawItemIcon(weapon, 128, 250, 60); // held in the right hand
+  // Equipped items shown on the blacksmith
+  const { head, chest, weapon, offhand } = inventory.equipped;
+  if (chest) drawIcon(chest, 88, 196, 64);
+  if (head) drawIcon(head, 96, 146, 48);
+  if (offhand) drawIcon(offhand, 44, 222, 52); // left arm
+  if (weapon) drawIcon(weapon, 128, 250, 60); // right hand
 
   drawBag();
   const selected = drawDetails();
-  if (selected) drawButton(ACTION_BTN, equippedSlotOf(selected.id) ? "Unequip" : "Equip");
+  if (selected) drawButton(ACTION_BTN, equippedSlotOf(selected.id) ? "Unequip" : "Equip", canEquipOrUnequip(selected.id));
   else drawEmptyDetails("Select an item to equip it.", "To sell items, visit the Trade Market.");
 }
 
@@ -845,7 +853,7 @@ function drawBag(): void {
   drawText(`Items ${inventory.items.length}/${INVENTORY_SIZE}`, GRID.x, GRID.y - 14, 18, "#e0a030", "left");
   for (let i = 0; i < INVENTORY_SIZE; i++) drawCell(cellRect(i), inventory.items[i]);
   if (inventory.items.length === 0) {
-    drawText("No items yet. Forge some swords!", GRID.x + 217, GRID.y + 145, 18, "#b8a888");
+    drawText("No items yet. Forge something!", GRID.x + 217, GRID.y + 145, 18, "#b8a888");
   }
 }
 
@@ -857,7 +865,9 @@ function drawDetails(): Item | undefined {
   if (selected) {
     const legendary = selected.tier === "legendary";
     drawText(itemName(selected), DETAILS.x + 16, DETAILS.y + 30, 20, legendary ? LEGENDARY_COLOR : "#f5e6c8", "left");
-    drawText(`${legendary ? "\u2605 Legendary" : "Normal"} \u00b7 worth ${selected.value}g`, DETAILS.x + 16, DETAILS.y + 56, 15, "#b8a888", "left");
+    const slot = SLOT_FOR_TYPE[selected.type];
+    const kind = slot ? SLOT_LABELS[slot] : "Trade good";
+    drawText(`${legendary ? "\u2605 Legendary" : "Normal"} \u00b7 ${kind} \u00b7 worth ${selected.value}g`, DETAILS.x + 16, DETAILS.y + 56, 15, "#b8a888", "left");
   }
   return selected;
 }
@@ -928,7 +938,7 @@ function drawHelp(): void {
   drawText("Help", W / 2, py + 45, 32);
 
   drawText("Controls", left, py + 85, 20, "#e0a030", "left");
-  drawText("Mouse, A/D or ←/→: move the marker", left, py + 112, 16, "#f5e6c8", "left");
+  drawText("Mouse, A/D or ←/→: move the marker      1–9, 0: pick the item to forge", left, py + 112, 16, "#f5e6c8", "left");
   drawText("SPACE or click: strike (hits only count in the golden zone)", left, py + 134, 16, "#f5e6c8", "left");
   drawText("S or ↓: reheat the blade in the forge      H: help      I: inventory", left, py + 156, 16, "#f5e6c8", "left");
   drawText("Finished items go to your Inventory (equip them) and sell at the Trade Market.", left, py + 178, 16, "#f5e6c8", "left");
@@ -937,7 +947,7 @@ function drawHelp(): void {
   drawText("Every item you forge has a tier, revealed only once it is finished.", left, py + 245, 16, "#f5e6c8", "left");
 
   drawText("Normal", left, py + 278, 18, "#f5e6c8", "left");
-  drawText("The usual result. Worth up to 100g: hits on hotter metal", left + 20, py + 302, 16, "#b8a888", "left");
+  drawText("The usual result. A sword is worth up to 100g; hotter hits", left + 20, py + 302, 16, "#b8a888", "left");
   drawText("make it worth more.", left + 20, py + 322, 16, "#b8a888", "left");
 
   drawText("★ Legendary", left, py + 355, 18, LEGENDARY_COLOR, "left");
@@ -954,18 +964,19 @@ function drawScreen(): void {
     drawText("Steer the marker with the mouse, A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText(`The blade cools: press S or ↓ to reheat. You have ${ROUND_TIME}s and ${maxEnergy} energy.`, W / 2, 410, 20);
-    drawText(`A sword takes ${SWORD.hits} hits over ${SWORD.heats} heats. Finished swords go to your Inventory.`, W / 2, 435, 20);
+    drawText("Pick what to forge with the item bar or keys 1–9, 0. Items go to your Inventory.", W / 2, 435, 20);
     drawText("Press SPACE or click to start", W / 2, 475, 24, "#ffb347");
     return;
   }
 
-  drawText(`Swords: ${swords}`, 20, 40, 24, "#f5e6c8", "left");
+  drawText(`Forged: ${forged}`, 20, 40, 24, "#f5e6c8", "left");
   drawBolt(18, 54, 22);
   drawText(`${energy}/${maxEnergy}`, 44, 73, 20, "#ffd60a", "left");
   drawText(`★ ${Math.round(legendaryChance * 100)}% legendary`, 20, 104, 18, LEGENDARY_COLOR, "left");
   drawText(`${Math.ceil(timeLeft)}s`, W - 20, 40, 26, timeLeft < 10 ? "#ff6040" : "#f5e6c8", "right");
 
   if (state === "playing") {
+    drawPicker();
     drawBar();
     drawHeatGauge();
     if (messageTimer > 0) {
@@ -982,7 +993,7 @@ function drawScreen(): void {
     ctx.restore();
     drawText(endReason, W / 2, 170, 52);
     const legendaryNote = legendaries > 0 ? ` (${legendaries} legendary)` : "";
-    drawText(`You forged ${swords} swords${legendaryNote}.`, W / 2, 230, 24);
+    drawText(`You forged ${forged} item${forged === 1 ? "" : "s"}${legendaryNote}.`, W / 2, 230, 24);
     drawText("Equip them in your Inventory or sell them at the Trade Market.", W / 2, 266, 20, "#b8a888");
     drawText("Press SPACE or click to forge again", W / 2, 340, 24, "#ffb347");
   }

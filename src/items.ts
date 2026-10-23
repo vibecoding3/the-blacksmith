@@ -1,14 +1,25 @@
 // Inventory and equipment: what the player owns, saved in the browser between visits.
 
-// Item types and equipment slots. Only swords exist so far; armor and other
-// weapon types will add entries here.
-export type ItemType = "sword";
-export type Slot = "weapon";
+// Item types and equipment slots. New item types and slots are added here.
+export type ItemType =
+  | "sword" | "dagger" | "axe" | "spear" | "greatsword" // weapons
+  | "helmet" | "shield" | "chestplate" // armor
+  | "horseshoe" | "nails"; // trade goods (sell only)
+export type Slot = "head" | "chest" | "weapon" | "offhand";
 export type Tier = "normal" | "legendary";
 
-export const SLOT_FOR_TYPE: Record<ItemType, Slot> = { sword: "weapon" };
-export const SLOT_LABELS: Record<Slot, string> = { weapon: "Weapon" };
-const TYPE_NAMES: Record<ItemType, string> = { sword: "Sword" };
+export const LEGENDARY_COLOR = "#ff9f1c";
+
+// Which slot each item type is worn in; trade goods have none.
+export const SLOT_FOR_TYPE: Partial<Record<ItemType, Slot>> = {
+  sword: "weapon", dagger: "weapon", axe: "weapon", spear: "weapon", greatsword: "weapon",
+  helmet: "head", chestplate: "chest", shield: "offhand",
+};
+export const SLOT_LABELS: Record<Slot, string> = { head: "Head", chest: "Chest", weapon: "Weapon", offhand: "Off-hand" };
+const TYPE_NAMES: Record<ItemType, string> = {
+  sword: "Sword", dagger: "Dagger", axe: "Axe", spear: "Spear", greatsword: "Greatsword",
+  helmet: "Helmet", shield: "Shield", chestplate: "Chestplate", horseshoe: "Horseshoe", nails: "Nails",
+};
 
 export const INVENTORY_SIZE = 24;
 
@@ -98,6 +109,7 @@ export function equip(id: number): void {
   const item = inventory.items.find((i) => i.id === id);
   if (!item) return;
   const slot = SLOT_FOR_TYPE[item.type];
+  if (!slot) return; // trade goods can't be equipped
   const previous = inventory.equipped[slot];
   inventory.items = inventory.items.filter((i) => i.id !== id);
   if (previous) inventory.items.push(previous);
