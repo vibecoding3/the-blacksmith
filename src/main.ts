@@ -105,15 +105,15 @@ function strike(): void {
 
   const dist = Math.abs(marker - zoneCenter);
   const half = zoneWidth() / 2;
-  const aim = dist <= half ? 1 - (dist / half) * 0.5 : Math.max(0, 0.5 - (dist - half) * 3);
+  // Anywhere inside the golden zone is a full hit; outside it the strike weakens with distance.
+  const aim = dist <= half ? 1 : Math.max(0, 0.5 - (dist - half) * 3);
   // Strikes on cooler metal are worth less (down to 60% just above the cold limit).
   const accuracy = aim * (0.6 + 0.4 * warmth());
   strikes.push(accuracy);
   temp = Math.max(ROOM_TEMP, temp - STRIKE_COOL);
 
-  if (accuracy >= 0.9) flash("PERFECT!");
-  else if (accuracy >= 0.5) flash("Good");
-  else if (accuracy > 0) flash("Sloppy...");
+  if (aim === 1) flash("Hit!");
+  else if (aim > 0) flash("Sloppy...");
   else flash("Miss!");
 
   const n = Math.round(accuracy * 25) + 3;
@@ -330,8 +330,6 @@ function drawBar(): void {
   const zx = BAR.x + (zoneCenter - zw / 2) * BAR.w;
   ctx.fillStyle = "#e0a030";
   ctx.fillRect(zx, BAR.y, zw * BAR.w, BAR.h);
-  ctx.fillStyle = "#fff3a0";
-  ctx.fillRect(BAR.x + zoneCenter * BAR.w - 3, BAR.y, 6, BAR.h);
 
   const mx = BAR.x + marker * BAR.w;
   ctx.fillStyle = "#fff";

@@ -16,7 +16,7 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 | `Space` / click | Strike the blade (also starts a new round) |
 | `S` / `↓` | Put the blade back in the forge to reheat it |
 
-- Steer the marker into the golden zone and strike. The closer you are to the bright centre line, the better the strike.
+- Steer the marker into the golden zone and strike. Any hit inside the zone counts fully; outside it, the strike gets weaker the further away you are.
 - Three strikes forge a sword, which sells automatically. More accurate strikes sell for more gold (up to 100g).
 - The golden zone gets smaller with every sword you finish.
 - **Heat:** the blade's temperature in °C is shown on the HEAT gauge on the right. The blade cools by about 30 °C per second in the air and 60 °C per strike.
@@ -61,6 +61,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v8** – Removed the perfect hit: any strike inside the golden zone counts the same, and the bright centre line is gone.
 - **v7** – The marker follows the mouse pointer directly, with no speed limit (keys still move it at a fixed speed).
 - **v6** – Steer the marker with the mouse as well as the keys. The marker slides toward the pointer at the same speed as with the keys.
 - **v5** – Added the crossed hammer-and-sword logo as the browser-tab icon and on the start screen.
