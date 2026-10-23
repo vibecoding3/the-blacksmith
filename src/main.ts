@@ -168,7 +168,7 @@ window.addEventListener("keyup", (e) => held.delete(e.code));
 window.addEventListener("blur", () => held.clear());
 canvas.addEventListener("pointerdown", onAction);
 
-// Mouse steering: the marker slides toward the pointer's position along the bar.
+// Mouse steering: the marker follows the pointer's position along the bar.
 canvas.addEventListener("pointermove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * W; // canvas may be scaled by CSS
@@ -201,10 +201,7 @@ function update(dt: number): void {
     if (move !== 0) {
       marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
     } else if (mouseTarget !== null) {
-      // Same top speed as the keys, so the mouse is not a shortcut.
-      const step = MARKER_SPEED * dt;
-      const diff = mouseTarget - marker;
-      marker = Math.abs(diff) <= step ? mouseTarget : marker + Math.sign(diff) * step;
+      marker = mouseTarget; // follows the pointer directly
     }
   }
 
