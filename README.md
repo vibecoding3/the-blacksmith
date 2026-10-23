@@ -96,6 +96,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v20** – Equipped items are no longer drawn on the blacksmith figure in the Inventory; they are shown only in their equipment slots.
 - **v19** – Nine new items to forge: dagger, axe, spear, greatsword, helmet, shield, chestplate, horseshoe and nails, each with its own strike-bar shape, hits, heats, value and cooling. New item bar (keys 1–9, 0) to choose what to forge. New **Head**, **Chest** and **Off-hand** equipment slots; trade goods can only be sold.
 - **v18** – New **Trade Market** menu for selling items, with a **Sell all normal** button. Selling moved there from the Inventory, which is now for equipping.
 - **v17** – Inventory system and a menu bar on the left with **Forge** and **Inventory**. Forged swords go to your inventory instead of being sold automatically; you choose what to equip or sell. Gold, items and equipment are saved between visits. The help button moved to the menu bar, and the per-round best score was removed.

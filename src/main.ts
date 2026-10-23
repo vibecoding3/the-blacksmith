@@ -836,12 +836,6 @@ function drawInventory(): void {
     drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 14, "#b8a888");
     drawCell(r, inventory.equipped[slot], "empty");
   }
-  // Equipped items shown on the blacksmith
-  const { head, chest, weapon, offhand } = inventory.equipped;
-  if (chest) drawIcon(chest, 88, 196, 64);
-  if (head) drawIcon(head, 96, 146, 48);
-  if (offhand) drawIcon(offhand, 44, 222, 52); // left arm
-  if (weapon) drawIcon(weapon, 128, 250, 60); // right hand
 
   drawBag();
   const selected = drawDetails();
