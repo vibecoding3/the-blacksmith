@@ -110,6 +110,9 @@ let sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [
 let best = Number(safeGet("blacksmith-best") ?? 0);
 let maxEnergy = BASE_MAX_ENERGY; // can be raised later (e.g. by upgrades)
 let energy = maxEnergy;
+let helpOpen = false; // the game is paused while the help panel is shown
+// Help button in the top-right corner (layout units; sits just outside the 800-wide layout).
+const HELP_BUTTON = { x: 822, y: 30, r: 16 };
 let legendaryChance = 0.05; // chance (0..1) that a finished sword turns out legendary
 let legendaries = 0;
 let endReason = ""; // headline on the game-over screen
@@ -242,6 +245,18 @@ function reheat(): void {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (e.code === "KeyH") {
+    helpOpen = !helpOpen;
+    return;
+  }
+  if (helpOpen) {
+    // Any action key closes help instead of acting on the game.
+    if (["Escape", "Space", "Enter"].includes(e.code)) {
+      e.preventDefault();
+      helpOpen = false;
+    }
+    return;
+  }
   if (e.code === "Space" || e.code === "Enter") {
     e.preventDefault();
     if (!e.repeat) onAction();
@@ -256,18 +271,34 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => held.delete(e.code));
 window.addEventListener("blur", () => held.clear());
-canvas.addEventListener("pointerdown", onAction);
+// Converts a pointer event to layout units (the canvas may also be scaled by CSS).
+function toLayout(e: PointerEvent): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  const screenX = ((e.clientX - rect.left) / rect.width) * SCREEN_W;
+  const screenY = ((e.clientY - rect.top) / rect.height) * SCREEN_H;
+  return { x: (screenX - OFFSET_X) / SCALE, y: screenY / SCALE };
+}
+
+function overHelpButton(p: { x: number; y: number }): boolean {
+  return Math.hypot(p.x - HELP_BUTTON.x, p.y - HELP_BUTTON.y) <= HELP_BUTTON.r + 4;
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (overHelpButton(toLayout(e))) helpOpen = !helpOpen;
+  else if (helpOpen) helpOpen = false;
+  else onAction();
+});
 
 // Mouse steering: the marker follows the pointer's position along the bar.
 canvas.addEventListener("pointermove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const screenX = ((e.clientX - rect.left) / rect.width) * SCREEN_W; // canvas may be scaled by CSS
-  const x = (screenX - OFFSET_X) / SCALE;
-  mouseTarget = clampToItem((x - BAR.x) / BAR.w);
+  const p = toLayout(e);
+  canvas.style.cursor = overHelpButton(p) ? "pointer" : "";
+  mouseTarget = clampToItem((p.x - BAR.x) / BAR.w);
 });
 canvas.addEventListener("pointerleave", () => (mouseTarget = null));
 
 function update(dt: number): void {
+  if (helpOpen) return;
   hammerAnim = Math.max(0, hammerAnim - dt * 4);
   messageTimer = Math.max(0, messageTimer - dt);
   for (const s of sparks) {
@@ -475,6 +506,59 @@ function render(): void {
   drawForge();
   drawScreen();
   drawVersion();
+  if (helpOpen) drawHelp();
+  drawHelpButton(); // on top of the help panel's dimming, so it stays clickable-looking
+}
+
+function drawHelpButton(): void {
+  const { x, y, r } = HELP_BUTTON;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = helpOpen ? "#e0a030" : "#2b1d18";
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#e0a030";
+  ctx.stroke();
+  drawText("?", x, y + 7, 20, helpOpen ? "#2b1d18" : "#e0a030");
+}
+
+function drawHelp(): void {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // dim the whole screen
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.restore();
+
+  const px = 110;
+  const py = 30;
+  const pw = 580;
+  const ph = 440;
+  ctx.fillStyle = "#2b1d18";
+  ctx.fillRect(px, py, pw, ph);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#e0a030";
+  ctx.strokeRect(px, py, pw, ph);
+
+  const left = px + 30;
+  drawText("Help", W / 2, py + 45, 32);
+
+  drawText("Controls", left, py + 85, 20, "#e0a030", "left");
+  drawText("Mouse, A/D or ←/→: move the marker", left, py + 112, 16, "#f5e6c8", "left");
+  drawText("SPACE or click: strike (hits only count in the golden zone)", left, py + 134, 16, "#f5e6c8", "left");
+  drawText("S or ↓: reheat the blade in the forge      H: open/close help", left, py + 156, 16, "#f5e6c8", "left");
+
+  drawText("Item tiers", left, py + 200, 20, "#e0a030", "left");
+  drawText("Every item you forge has a tier, revealed only once it is finished.", left, py + 227, 16, "#f5e6c8", "left");
+
+  drawText("Normal", left, py + 262, 18, "#f5e6c8", "left");
+  drawText("The usual result. Sells for up to 100g: hits on hotter metal", left + 20, py + 286, 16, "#b8a888", "left");
+  drawText("make it worth more.", left + 20, py + 306, 16, "#b8a888", "left");
+
+  drawText("★ Legendary", left, py + 341, 18, LEGENDARY_COLOR, "left");
+  drawText(`Rare. Each finished item has a ${Math.round(legendaryChance * 100)}% chance (your ★ stat)`, left + 20, py + 365, 16, "#b8a888", "left");
+  drawText(`to become legendary. Sells for ${LEGENDARY_PRICE_MULTIPLIER}× the normal price.`, left + 20, py + 385, 16, "#b8a888", "left");
+
+  drawText("Click anywhere or press H to close", W / 2, py + ph - 18, 16, "#ffb347");
 }
 
 function drawScreen(): void {
