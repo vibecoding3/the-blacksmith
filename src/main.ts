@@ -1,4 +1,4 @@
-// Blacksmith Simulator — strike the hot blade when the marker is in the sweet spot.
+// Blacksmith Simulator — steer the marker into the sweet spot and strike the hot blade.
 
 type State = "menu" | "playing" | "over";
 
@@ -17,8 +17,8 @@ let gold = 0;
 let swords = 0;
 let strikes: number[] = []; // accuracy of each strike on the current sword (0..1)
 let marker = 0; // 0..1 position along the bar
-let dir = 1;
-let speed = 0.8; // bar-widths per second
+const MARKER_SPEED = 0.9; // bar-widths per second
+const held = new Set<string>(); // movement keys currently pressed
 let zoneCenter = 0.5;
 let zoneWidth = 0.18;
 let message = "";
@@ -45,9 +45,7 @@ function startGame(): void {
   gold = 0;
   swords = 0;
   strikes = [];
-  speed = 0.8;
-  marker = 0;
-  dir = 1;
+  marker = 0.5;
   sparks = [];
   newZone();
 }
@@ -85,7 +83,6 @@ function strike(): void {
     gold += price;
     swords++;
     strikes = [];
-    speed += 0.12;
     flash(`Sword sold for ${price}g!`);
   }
   newZone();
@@ -96,12 +93,20 @@ function onAction(): void {
   else startGame();
 }
 
+const LEFT_KEYS = ["KeyA", "ArrowLeft"];
+const RIGHT_KEYS = ["KeyD", "ArrowRight"];
+
 window.addEventListener("keydown", (e) => {
   if (e.code === "Space" || e.code === "Enter") {
     e.preventDefault();
     if (!e.repeat) onAction();
+  } else if (LEFT_KEYS.includes(e.code) || RIGHT_KEYS.includes(e.code)) {
+    e.preventDefault();
+    held.add(e.code);
   }
 });
+window.addEventListener("keyup", (e) => held.delete(e.code));
+window.addEventListener("blur", () => held.clear());
 canvas.addEventListener("pointerdown", onAction);
 
 function update(dt: number): void {
@@ -117,9 +122,10 @@ function update(dt: number): void {
 
   if (state !== "playing") return;
 
-  marker += dir * speed * dt;
-  if (marker > 1) { marker = 1; dir = -1; }
-  if (marker < 0) { marker = 0; dir = 1; }
+  const left = LEFT_KEYS.some((k) => held.has(k));
+  const right = RIGHT_KEYS.some((k) => held.has(k));
+  const move = (right ? 1 : 0) - (left ? 1 : 0);
+  marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
 
   timeLeft -= dt;
   if (timeLeft <= 0) {
@@ -216,8 +222,9 @@ function render(): void {
 
   if (state === "menu") {
     drawText("Blacksmith Simulator", W / 2, 110, 48);
-    drawText("Strike when the marker is in the golden zone.", W / 2, 390, 20);
-    drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 420, 20);
+    drawText("Steer the marker with A/D or the arrow keys,", W / 2, 375, 20);
+    drawText("then press SPACE or click to strike in the golden zone.", W / 2, 400, 20);
+    drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 425, 20);
     drawText("Press SPACE or click to start", W / 2, 470, 24, "#ffb347");
     return;
   }
