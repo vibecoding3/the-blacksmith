@@ -94,7 +94,7 @@ export function drawMarket(): void {
     const name = id in METALS ? METALS[id as keyof typeof METALS].label : GEMS[id as keyof typeof GEMS].label;
     drawMaterialIcon(ctx, id, 50, y - 13, 20);
     drawText(name, 74, y - 1, 12, "#f5e6c8", "left");
-    drawText(`have ${materialCount(id)}`, 74, y + 11, 9, "#8a7a68", "left");
+    drawText(`x${materialCount(id)}`, 74, y + 11, 9, "#8a7a68", "left");
     drawText(`${priceOf(id)}g`, 198, y + 4, 11, "#ffd700", "right");
     for (const amount of [1, 5] as const) drawButton(buyRect(row, amount), `+${amount}`, save.gold >= priceOf(id) * amount, 11);
   });
