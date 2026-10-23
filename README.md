@@ -29,6 +29,10 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
   - Each new sword starts fully hot.
 - Your best score is saved in your browser.
 
+## Display
+
+The game renders at a fixed **1280×720** resolution and runs at up to **60 fps**, including on 120/144 Hz screens. In smaller browser windows it shrinks to fit while keeping its 16:9 shape.
+
 ## Running locally
 
 Requires [Node.js](https://nodejs.org/) 22 or newer.
@@ -63,6 +67,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v13** – Fixed 1280×720 resolution (16:9) and a 60 fps frame cap.
 - **v12** – The strike bar is now shaped like a sword (pommel, grip, crossguard and blade); the golden zone and marker stay on the blade.
 - **v11** – Legendary swords: each finished sword has a 5% chance (shown as a ★ stat) to be legendary and sell for 5× the price, revealed when the sword is done.
 - **v10** – Energy system: you start with 100 energy (yellow lightning bolt), each hammer swing costs 1, and the round ends when you run out.

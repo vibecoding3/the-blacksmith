@@ -4,8 +4,20 @@ type State = "menu" | "playing" | "over";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
-const W = canvas.width;
-const H = canvas.height;
+
+// The canvas renders at a fixed 1280x720. The scene is laid out in 800x500
+// layout units, scaled up to fill the screen height and centred horizontally.
+const SCREEN_W = 1280;
+const SCREEN_H = 720;
+const W = 800;
+const H = 500;
+const SCALE = SCREEN_H / H;
+const OFFSET_X = (SCREEN_W - W * SCALE) / 2;
+canvas.width = SCREEN_W;
+canvas.height = SCREEN_H;
+
+const FPS = 60;
+const FRAME_MS = 1000 / FPS;
 
 const ROUND_TIME = 60; // seconds
 const START_ENERGY = 100; // each hammer swing, hit or miss, costs 1
@@ -248,7 +260,8 @@ canvas.addEventListener("pointerdown", onAction);
 // Mouse steering: the marker follows the pointer's position along the bar.
 canvas.addEventListener("pointermove", (e) => {
   const rect = canvas.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * W; // canvas may be scaled by CSS
+  const screenX = ((e.clientX - rect.left) / rect.width) * SCREEN_W; // canvas may be scaled by CSS
+  const x = (screenX - OFFSET_X) / SCALE;
   mouseTarget = clampToItem((x - BAR.x) / BAR.w);
 });
 canvas.addEventListener("pointerleave", () => (mouseTarget = null));
@@ -334,16 +347,20 @@ function drawBlade(x: number, y: number): void {
   ctx.fillRect(x - 25, y - 2, 25, 14);
 }
 
-function drawForge(): void {
-  // Background wall and forge glow
+// Fills the whole canvas in screen pixels, so it must be drawn without the layout transform.
+function drawBackground(): void {
   ctx.fillStyle = "#2b1d18";
-  ctx.fillRect(0, 0, W, H);
-  const glow = ctx.createRadialGradient(400, 260, 20, 400, 260, 320);
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  const cx = OFFSET_X + 400 * SCALE;
+  const cy = 260 * SCALE;
+  const glow = ctx.createRadialGradient(cx, cy, 20 * SCALE, cx, cy, 320 * SCALE);
   glow.addColorStop(0, "rgba(255,120,30,0.35)");
   glow.addColorStop(1, "rgba(255,120,30,0)");
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+}
 
+function drawForge(): void {
   // Forge on the left, with flickering fire
   ctx.fillStyle = "#5a2e22";
   ctx.fillRect(30, 200, 150, 140);
@@ -451,6 +468,9 @@ function drawVersion(): void {
 }
 
 function render(): void {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawBackground();
+  ctx.setTransform(SCALE, 0, 0, SCALE, OFFSET_X, 0);
   drawForge();
   drawScreen();
   drawVersion();
@@ -486,8 +506,11 @@ function drawScreen(): void {
       ctx.globalAlpha = 1;
     }
   } else {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // darken the whole screen, not just the layout area
     ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.restore();
     drawText(endReason, W / 2, 170, 52);
     const legendaryNote = legendaries > 0 ? ` (${legendaries} legendary)` : "";
     drawText(`You forged ${swords} swords${legendaryNote} and earned ${gold} gold.`, W / 2, 230, 24);
@@ -496,12 +519,17 @@ function drawScreen(): void {
   }
 }
 
-let last = performance.now();
+// Capped at 60 fps: on faster screens (120/144 Hz) some animation frames are skipped.
+let lastFrame = performance.now();
+let lastUpdate = lastFrame;
 function loop(now: number): void {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
+  requestAnimationFrame(loop);
+  if (now - lastFrame < FRAME_MS - 1) return; // 1 ms tolerance for timing jitter on 60 Hz screens
+  // Advance on a 60 fps schedule without falling behind (or drifting ahead of) real time.
+  lastFrame = Math.max(Math.min(now, lastFrame + FRAME_MS), now - FRAME_MS);
+  const dt = Math.min(0.05, (now - lastUpdate) / 1000);
+  lastUpdate = now;
   update(dt);
   render();
-  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
