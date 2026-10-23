@@ -8,6 +8,7 @@ const W = canvas.width;
 const H = canvas.height;
 
 const ROUND_TIME = 60; // seconds
+const START_ENERGY = 100; // each hammer swing, hit or miss, costs 1
 const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
 const GAUGE = { x: 700, y: 140, w: 24, h: 180 };
@@ -52,6 +53,8 @@ let messageTimer = 0;
 let hammerAnim = 0; // 1 right after a strike, decays to 0
 let sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 let best = Number(safeGet("blacksmith-best") ?? 0);
+let energy = START_ENERGY;
+let endReason = ""; // headline on the game-over screen
 const logo = new Image();
 logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
 
@@ -81,6 +84,7 @@ function startGame(): void {
   state = "playing";
   timeLeft = ROUND_TIME;
   gold = 0;
+  energy = START_ENERGY;
   swords = 0;
   strikes = [];
   marker = 0.5;
@@ -97,7 +101,9 @@ function flash(text: string): void {
 
 function strike(): void {
   if (inForge) return;
+  if (energy <= 0) return;
   hammerAnim = 1;
+  energy--;
   if (temp < COLD_TEMP) {
     flash("Too cold! Reheat (S)");
     return;
@@ -138,8 +144,13 @@ function strike(): void {
 }
 
 function onAction(): void {
-  if (state === "playing") strike();
-  else startGame();
+  if (state === "playing") {
+    strike();
+    // Checked after the strike so a sword finished on the last swing still sells.
+    if (energy <= 0) endGame("Out of energy!");
+  } else {
+    startGame();
+  }
 }
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
@@ -207,12 +218,27 @@ function update(dt: number): void {
   timeLeft -= dt;
   if (timeLeft <= 0) {
     timeLeft = 0;
-    state = "over";
-    if (gold > best) {
-      best = gold;
-      safeSet("blacksmith-best", String(best));
-    }
+    endGame("Time's up!");
   }
+}
+
+function endGame(reason: string): void {
+  state = "over";
+  endReason = reason;
+  if (gold > best) {
+    best = gold;
+    safeSet("blacksmith-best", String(best));
+  }
+}
+
+// Yellow lightning bolt, the energy symbol, drawn in a box of the given size at (x, y).
+function drawBolt(x: number, y: number, size: number): void {
+  const pts = [[0.6, 0], [0.1, 0.55], [0.45, 0.55], [0.3, 1], [0.9, 0.4], [0.55, 0.4], [0.75, 0]];
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x + px * size, y + py * size));
+  ctx.closePath();
+  ctx.fillStyle = "#ffd60a";
+  ctx.fill();
 }
 
 function drawText(text: string, x: number, y: number, size: number, color = "#f5e6c8", align: CanvasTextAlign = "center"): void {
@@ -363,13 +389,15 @@ function drawScreen(): void {
     drawText("Steer the marker with the mouse, A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);
-    drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 435, 20);
+    drawText(`3 hits forge a sword. You have ${ROUND_TIME} seconds and ${START_ENERGY} energy (1 per swing).`, W / 2, 435, 20);
     drawText("Press SPACE or click to start", W / 2, 475, 24, "#ffb347");
     return;
   }
 
   drawText(`Gold: ${gold}`, 20, 40, 26, "#ffd700", "left");
   drawText(`Swords: ${swords}`, 20, 72, 20, "#f5e6c8", "left");
+  drawBolt(18, 84, 22);
+  drawText(`${energy}`, 44, 103, 20, energy <= 10 ? "#ff6040" : "#ffd60a", "left");
   drawText(`${Math.ceil(timeLeft)}s`, W - 20, 40, 26, timeLeft < 10 ? "#ff6040" : "#f5e6c8", "right");
   drawText(`Best: ${best}`, W - 20, 72, 18, "#b8a888", "right");
 
@@ -384,7 +412,7 @@ function drawScreen(): void {
   } else {
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, W, H);
-    drawText("Time's up!", W / 2, 170, 52);
+    drawText(endReason, W / 2, 170, 52);
     drawText(`You forged ${swords} swords and earned ${gold} gold.`, W / 2, 230, 24);
     drawText(gold >= best && gold > 0 ? "New best!" : `Best: ${best}`, W / 2, 270, 22, "#ffd700");
     drawText("Press SPACE or click to play again", W / 2, 340, 24, "#ffb347");
