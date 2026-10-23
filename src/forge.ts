@@ -2,6 +2,7 @@
 // quench it at the right temperature, then sharpen or polish it. Also used to repair worn gear.
 
 import { sfx } from "./audio";
+import { emit } from "./events";
 import { BAR, FORGE_ITEMS, forgeItemFor, type ForgeItem } from "./forgeItems";
 import { drawItemIcon, drawMaterialIcon } from "./icons";
 import {
@@ -373,6 +374,7 @@ function completePiece(result = "", resultColor = "#ffe080"): void {
     flash(`Inventory full! ${name} sold for ${value}g`, legendary ? LEGENDARY_COLOR : "#ffe080", 2.5);
   }
   addXp(item.hits * (item.kind === "trade" ? 2 : 4) * (legendary ? 3 : 1));
+  emit({ type: "forged", item: fields });
   forged++;
   resetPiece();
 }

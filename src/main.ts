@@ -13,6 +13,8 @@ import { levelInfo, perkPoints, progressEvents } from "./progression";
 import { persist, save } from "./save";
 import { blacksmithClick, blacksmithHover, drawBlacksmith } from "./screens/blacksmith";
 import { dungeonClick, dungeonHover, dungeonUpdate, drawDungeon } from "./screens/dungeon";
+import { drawGuild, guildClick, guildHover } from "./screens/guild";
+import { RANKS, RANK_COLORS, initGuild } from "./guild";
 import { drawInventory, inventoryClick, inventoryHover } from "./screens/inventory";
 import { bag } from "./screens/bag";
 import { drawMarket, marketClick, marketHover } from "./screens/market";
@@ -21,7 +23,7 @@ import { drawOrders, ordersClick, ordersHover } from "./screens/orders";
 import { drawWorkshop, workshopClick, workshopHover } from "./screens/workshop";
 import {
   OFFSET_X, OFFSET_Y, SCALE, SCREEN_H, SCREEN_W, SIDEBAR_W, W, app, canvas, ctx, dimScreen, drawMeter, drawText, inRect,
-  input, toast, type Point, type Rect, type Tab,
+  input, textWidth, toast, type Point, type Rect, type Tab,
 } from "./ui";
 
 const FPS = 60;
@@ -34,6 +36,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "inventory", label: "Inventory" },
   { id: "market", label: "Trade Market" },
   { id: "orders", label: "Orders" },
+  { id: "guild", label: "Adventurer's Guild" },
   { id: "dungeon", label: "Dungeon" },
   { id: "workshop", label: "Workshop" },
   { id: "blacksmith", label: "Blacksmith" },
@@ -51,12 +54,14 @@ const SCREENS: Record<Exclude<Tab, "forge">, { draw: () => void; click: (p: Poin
     }),
     hover: ordersHover,
   },
+  guild: { draw: drawGuild, click: guildClick, hover: guildHover },
   dungeon: { draw: drawDungeon, click: dungeonClick, hover: dungeonHover },
   workshop: { draw: drawWorkshop, click: workshopClick, hover: workshopHover },
   blacksmith: { draw: drawBlacksmith, click: blacksmithClick, hover: blacksmithHover },
 };
 
 initMarket();
+initGuild();
 progressEvents.levelUp = (level) => {
   toast(`Level up! You are now level ${level}. New perk point to spend in Blacksmith.`, "#9fe3ff", 3.5);
   sfx.levelUp();
@@ -221,7 +226,8 @@ function render(): void {
 
 // ---- Sidebar (screen pixels) ----
 
-const TAB_RECTS: Rect[] = TABS.map((_, i) => ({ x: 14, y: 96 + i * 54, w: SIDEBAR_W - 28, h: 44 }));
+const TAB_STEP = 48;
+const TAB_RECTS: Rect[] = TABS.map((_, i) => ({ x: 14, y: 90 + i * TAB_STEP, w: SIDEBAR_W - 28, h: 40 }));
 const HELP_RECT: Rect = { x: 14, y: SCREEN_H - 62, w: SIDEBAR_W - 28, h: 44 };
 const logo = new Image();
 logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
@@ -241,7 +247,9 @@ function drawSidebarButton(r: Rect, label: string, active: boolean, badge = fals
   ctx.lineWidth = 2;
   ctx.strokeStyle = active ? "#e0a030" : "#5a4030";
   ctx.stroke();
-  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 6, 18, active ? "#2b1d18" : "#f5e6c8");
+  // Long labels (e.g. "Adventurer's Guild") use a smaller font so they fit the button.
+  const size = Math.min(17, Math.floor((17 * (r.w - 12)) / textWidth(label, 17)));
+  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + size * 0.36, size, active ? "#2b1d18" : "#f5e6c8");
   if (badge) {
     ctx.beginPath();
     ctx.arc(r.x + r.w - 6, r.y + 6, 6, 0, Math.PI * 2);
@@ -264,7 +272,7 @@ function drawSidebar(): void {
   });
 
   // Gold and level live in the sidebar: they matter on every screen
-  const gy = 96 + TABS.length * 54 + 26;
+  const gy = 90 + TABS.length * TAB_STEP + 24;
   ctx.beginPath();
   ctx.arc(30, gy - 7, 10, 0, Math.PI * 2);
   ctx.fillStyle = "#ffd700";
@@ -274,6 +282,7 @@ function drawSidebar(): void {
   drawText(`Level ${level}`, 20, gy + 30, 16, "#9fe3ff", "left");
   drawMeter({ x: 20, y: gy + 38, w: SIDEBAR_W - 40, h: 7 }, into / needed, "#9fe3ff");
   drawText(`${into}/${needed} XP`, SIDEBAR_W - 20, gy + 30, 11, "#8a7a68", "right");
+  if (save.guild.registered) drawText(`Guild: ${RANKS[save.guild.rank]}-rank`, 20, gy + 66, 14, RANK_COLORS[save.guild.rank], "left");
 
   drawSidebarButton(HELP_RECT, "? Help", app.helpOpen);
 }
@@ -314,6 +323,7 @@ function drawHelp(): void {
   line("Mine: dig a path down from the top for ore (40 swings a day; deeper is rarer); smelt iron to steel.");
   line("Inventory: equip gear (10 slots) and repair worn items. Trade Market: buy ore and gems, sell.");
   line("Prices change every day (after each forging round). Orders: customers pay extra for items.");
+  line("Adventurer's Guild: register, take quests for gold, XP and GP, and pass exams from F- to S-rank.");
   line("Dungeon: fight with your gear for ore, gems, gold, XP and blueprints. Gear wears down.");
   line("Workshop: forge upgrades for gold. Blacksmith: perks from level-ups, save backups, sound.");
   y += 6;

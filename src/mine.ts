@@ -3,6 +3,7 @@
 // rock in the top row or next to one you've already broken, so reaching the rare ore deep down
 // means digging a path to it. Steel isn't found in the ground: it is smelted from iron.
 
+import { emit } from "./events";
 import { addMaterial, materialCount, spendMaterial } from "./items";
 import { GEM_IDS, type MaterialId } from "./metals";
 import { addXp, pickaxePower } from "./progression";
@@ -114,6 +115,7 @@ export function swing(index: number): SwingResult | null {
       addMaterial(loot.id, loot.amount);
       m.haul[loot.id] = (m.haul[loot.id] ?? 0) + loot.amount;
       addXp(tile.kind === "gem" ? 6 : loot.amount);
+      emit({ type: "mined", material: loot.id, amount: loot.amount });
       result.loot = loot;
     }
   }

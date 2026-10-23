@@ -1,6 +1,7 @@
 // The market economy: daily demand for item types, sale prices, and customer orders.
 // A new day starts after each forging round.
 
+import { emit } from "./events";
 import { FORGE_ITEMS } from "./forgeItems";
 import { addGold, computeValue, removeFromBag, type Item, type ItemType } from "./items";
 import { METAL_IDS, METALS, type MetalId } from "./metals";
@@ -104,6 +105,7 @@ export function newDay(): void {
   rollDemand();
   fillOrders();
   persist();
+  emit({ type: "newDay" });
 }
 
 // First run (or a save from before markets had days): set up today's prices and orders.

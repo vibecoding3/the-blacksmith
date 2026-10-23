@@ -3,9 +3,10 @@
 
 import { forgeItemFor } from "./forgeItems";
 import type { Item, ItemType, Slot } from "./items";
+import type { GuildState } from "./guild";
 import type { MineState } from "./mine";
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 // Ore every new blacksmith starts with (also given to players whose save predates materials).
 const STARTER_MATERIALS = { copper: 10, iron: 15 };
@@ -36,6 +37,7 @@ export interface SaveData {
   day: number; // a new day starts after each forging round
   demand: Partial<Record<ItemType, number>>; // today's price multipliers at the market
   mine: MineState | null; // today's rock wall in the Mine
+  guild: GuildState; // Adventurer's Guild license, rank and quests
   muted: boolean;
 }
 
@@ -55,6 +57,7 @@ function defaults(): SaveData {
     day: 1,
     demand: {},
     mine: null,
+    guild: { registered: false, name: "", rank: 0, points: 0, completed: 0, board: [], boardDay: 0, active: [] },
     muted: false,
   };
 }
@@ -67,6 +70,7 @@ function migrate(data: Record<string, unknown>): SaveData {
   // v1 -> v2: progression, materials, orders, market and settings fields (filled from defaults below).
   // v2 -> v3: items gain metal, quality, quench/finish bonuses and durability.
   // v3 -> v4: the Mine (today's rock wall), filled from defaults below.
+  // v5 -> v6: the Adventurer's Guild (filled from defaults below).
   // v4 -> v5: mine tiles are all visible; "revealed" becomes "reachable" and weak spots are gone.
   if ((d.version as number) < 5 && d.mine) {
     const mine = d.mine as { tiles: Record<string, unknown>[] };

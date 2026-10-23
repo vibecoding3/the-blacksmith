@@ -1,6 +1,7 @@
 // Dungeons: the blacksmith fights room by room using the stats of the equipped gear (auto-battle),
 // collecting ore, gems, gold, XP and sometimes a blueprint. Gear wears down along the way.
 
+import { emit as emitGameEvent } from "./events";
 import { FORGE_ITEMS } from "./forgeItems";
 import { addGold, addMaterial, gearStats, wearEquipment, type ItemType, type TraitId } from "./items";
 import type { MaterialId } from "./metals";
@@ -181,6 +182,7 @@ function monsterCleared(b: Battle, emit: (e: BattleEvent) => void): void {
   const d = b.dungeon;
   const boss = b.room >= ROOMS;
   emit("monsterDown");
+  emitGameEvent({ type: "monsterDefeated", dungeon: d.id, monster: b.monster.name, boss });
   log(b, `The ${b.monster.name} is defeated!`, "#9fd86a");
   b.xp += d.xp * (boss ? 4 : 1);
   b.gold += randInt(d.gold[0], d.gold[1]) * (boss ? 3 : 1);
@@ -192,6 +194,7 @@ function monsterCleared(b: Battle, emit: (e: BattleEvent) => void): void {
     }
     b.phase = "won";
     emit("victory");
+    emitGameEvent({ type: "dungeonCleared", dungeon: d.id });
     log(b, `You cleared the ${d.name}!`, "#ffd700");
   } else {
     b.phase = "between";

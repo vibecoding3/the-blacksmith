@@ -17,6 +17,7 @@ The menu bar on the left switches between the game's menus. Your gold and blacks
 | **Inventory** | Equip gear in 10 slots, and send worn gear for repair. |
 | **Trade Market** | Buy ore and gems; sell items at today's prices. |
 | **Orders** | Customers who pay extra gold and XP for a specific item. |
+| **Adventurer's Guild** | Register for a license, take quests, and rise from F-rank to S-rank. |
 | **Dungeon** | Auto-battles with your equipped gear, for ore, gems, gold, XP and blueprints. |
 | **Workshop** | Permanent forge upgrades, bought with gold. |
 | **Blacksmith** | Level, XP and perks; save export/import; sound on/off. |
@@ -111,6 +112,38 @@ Your blacksmith fights automatically, room by room (4 rooms, then a boss), heali
 | Crypt of Bones | 5 | 80g | Lich | Steel, silver, sapphires, emeralds |
 | Dragon's Lair | 8 | 200g | Ancient Dragon | Silver, gold, mithril, emeralds, rubies |
 
+### Adventurer's Guild
+
+The guild is where adventurers register, accept quests, earn rewards and rise through the ranks.
+
+- **Register** for a license (20g) and choose the name printed on it. Everyone starts at **F-rank**.
+- **Quest board:** four new quests each day (three of your rank and one of the next rank to aim for), or post new ones for 15g. Quests use everything else in the game:
+
+  | Quest | What to do |
+  | --- | --- |
+  | Hunt | Defeat a number of specific monsters in a dungeon |
+  | Subjugation | Clear a dungeon and defeat its boss |
+  | Prospecting | Mine a certain ore yourself |
+  | Supplies | Hand in ore to the guild |
+  | Smithing | Forge items from a certain metal |
+  | Arms | Deliver a specific weapon or armor piece (metal and minimum value) |
+  | Masterwork (B-rank+) | Forge any legendary item |
+
+  Progress is tracked automatically from the moment you accept a quest. Finished quests are claimed (or handed in) at the guild for **gold, XP and guild points (GP)**.
+- **Ranks and promotion exams:** collect GP to unlock the exam for the next rank. Exams give a gold and XP reward.
+
+  | Rank | GP for the next exam | Exam for the next rank | Quest slots | Reward bonus |
+  | --- | --- | --- | --- | --- |
+  | F | 30 | Clear the Rat Cellar | 2 | — |
+  | E | 80 | Present a Steel Sword worth 60g+ | 2 | +5% |
+  | D | 180 | Clear the Goblin Mines | 3 | +10% |
+  | C | 350 | Clear the Crypt of Bones | 3 | +15% |
+  | B | 600 | Present a legendary weapon or armor | 4 | +20% |
+  | A | 1000 | Clear the Dragon's Lair | 4 | +30% |
+  | S | — (highest rank) | — | 5 | +40% |
+
+  Higher ranks get harder quests with bigger rewards. Your rank is shown on your license and under your level in the sidebar.
+
 ### Progression
 
 - **XP** comes from forging, repairs, orders and dungeons. Each level gives a **perk point**: Lucky Hammer (+1% legendary chance), Stamina (+10 max energy), Heat Retention (metal cools 8% slower), Steady Hand (+6% golden zone), Haggler (+5% sale prices), Warrior (+5% dungeon attack).
@@ -150,11 +183,13 @@ npm run preview  # serve the built dist/ folder
 | `src/progression.ts` | Levels, XP, perks, workshop upgrades, unlocks and all bonuses |
 | `src/market.ts` | Daily demand, sale prices and customer orders |
 | `src/mine.ts` | The Mine: daily rock wall, ore odds by depth, mining and smelting |
+| `src/guild.ts` | Adventurer's Guild: license, ranks, quest board, quest tracking and exams |
+| `src/events.ts` | Game events (monsters defeated, ore mined, items forged, new day) that quests listen to |
 | `src/dungeons.ts` | Dungeons, monsters and the auto-battle |
 | `src/save.ts` | Versioned save, migrations, export and import |
 | `src/audio.ts` | Synthesized sound effects |
 | `src/icons.ts` | Item, ore and gem icons |
-| `src/screens/` | One file per menu (mine, inventory, market, orders, dungeon, workshop, blacksmith) plus the shared bag grid |
+| `src/screens/` | One file per menu (mine, inventory, market, orders, guild, dungeon, workshop, blacksmith) plus the shared bag grid |
 | `public/favicon.svg` | Logo, used as the browser-tab icon and on the start screen |
 | `VERSION` | Build number shown in the game |
 | `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
@@ -172,6 +207,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v30** – New **Adventurer's Guild**: register for a license, take quests from a daily board (hunts, dungeon subjugations, mining, supplies, smithing, arms deliveries, masterworks), earn gold, XP and guild points, and pass promotion exams to rise from F-rank to S-rank. Higher ranks unlock more quest slots, bigger reward bonuses and harder quests. The sidebar buttons are slightly smaller to fit nine menus, and your guild rank is shown under your level.
 - **v29** – Mine changes: the target rings and double damage are gone (every swing does the same damage). The whole rock wall is visible from the start, but you can only dig rocks in the top row or next to one you have broken, so you dig a path down to the rare ore.
 - **v28** – New **Mine** menu: dig your own ore and gems in a daily rock wall (40 pickaxe swings per day). Breaking rocks reveals deeper ones, which hold rarer ore; hitting a rock's target ring does double damage. Includes a smelter (2 iron → 1 steel) and a new **Steel Pickaxe** workshop upgrade. The Workshop now shows its upgrades in a 2 × 4 grid.
 - **v27** – The Trade Market shows how much of each material you own as “x10” instead of “have 10”.

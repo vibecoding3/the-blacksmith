@@ -22,7 +22,7 @@ export type Rect = { x: number; y: number; w: number; h: number };
 export const inRect = (p: Point, r: Rect) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 // Sidebar menus, in display order.
-export type Tab = "forge" | "mine" | "inventory" | "market" | "orders" | "dungeon" | "workshop" | "blacksmith";
+export type Tab = "forge" | "mine" | "inventory" | "market" | "orders" | "guild" | "dungeon" | "workshop" | "blacksmith";
 
 // Shared app state.
 export const app = {
@@ -63,6 +63,23 @@ export function drawText(text: string, x: number, y: number, size: number, color
 export function textWidth(text: string, size: number): number {
   ctx.font = `bold ${size}px Georgia, serif`;
   return ctx.measureText(text).width;
+}
+
+// Splits text into lines no wider than maxWidth at the given font size.
+export function wrapText(text: string, maxWidth: number, size: number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && textWidth(next, size) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 export function drawTitle(text: string): void {
