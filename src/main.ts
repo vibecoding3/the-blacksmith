@@ -9,6 +9,8 @@ const H = canvas.height;
 
 const ROUND_TIME = 60; // seconds
 const START_ENERGY = 100; // each hammer swing, hit or miss, costs 1
+const LEGENDARY_PRICE_MULTIPLIER = 5;
+const LEGENDARY_COLOR = "#ff9f1c";
 const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
 const GAUGE = { x: 700, y: 140, w: 24, h: 180 };
@@ -50,10 +52,13 @@ let temp = FORGE_TEMP; // blade temperature in °C
 let inForge = false;
 let message = "";
 let messageTimer = 0;
+let messageColor = "#ffe080";
 let hammerAnim = 0; // 1 right after a strike, decays to 0
 let sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 let best = Number(safeGet("blacksmith-best") ?? 0);
 let energy = START_ENERGY;
+let legendaryChance = 0.05; // chance (0..1) that a finished sword turns out legendary
+let legendaries = 0;
 let endReason = ""; // headline on the game-over screen
 const logo = new Image();
 logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
@@ -85,6 +90,7 @@ function startGame(): void {
   timeLeft = ROUND_TIME;
   gold = 0;
   energy = START_ENERGY;
+  legendaries = 0;
   swords = 0;
   strikes = [];
   marker = 0.5;
@@ -94,9 +100,10 @@ function startGame(): void {
   newZone();
 }
 
-function flash(text: string): void {
+function flash(text: string, color = "#ffe080", duration = 1): void {
   message = text;
-  messageTimer = 1;
+  messageColor = color;
+  messageTimer = duration;
 }
 
 function strike(): void {
@@ -133,12 +140,28 @@ function strike(): void {
 
   if (strikes.length >= STRIKES_PER_SWORD) {
     const quality = strikes.reduce((a, b) => a + b, 0) / strikes.length;
-    const price = Math.round(quality * quality * 100);
+    let price = Math.round(quality * quality * 100);
+    // Quality is only revealed once the sword is finished.
+    const legendary = Math.random() < legendaryChance;
+    if (legendary) {
+      price *= LEGENDARY_PRICE_MULTIPLIER;
+      legendaries++;
+      for (let i = 0; i < 80; i++) {
+        sparks.push({
+          x: 400, y: 235,
+          vx: (Math.random() - 0.5) * 700,
+          vy: -Math.random() * 500 - 100,
+          life: 1 + Math.random() * 0.8,
+        });
+      }
+      flash(`LEGENDARY sword! Sold for ${price}g!`, LEGENDARY_COLOR, 2.5);
+    } else {
+      flash(`Sword sold for ${price}g!`);
+    }
     gold += price;
     swords++;
     strikes = [];
     temp = FORGE_TEMP; // a fresh blank comes out of the forge hot
-    flash(`Sword sold for ${price}g!`);
   }
   newZone();
 }
@@ -397,6 +420,7 @@ function drawScreen(): void {
   drawText(`Gold: ${gold}`, 20, 40, 26, "#ffd700", "left");
   drawText(`Swords: ${swords}`, 20, 72, 20, "#f5e6c8", "left");
   drawBolt(18, 84, 22);
+  drawText(`★ ${Math.round(legendaryChance * 100)}% legendary`, 20, 134, 18, LEGENDARY_COLOR, "left");
   drawText(`${energy}`, 44, 103, 20, energy <= 10 ? "#ff6040" : "#ffd60a", "left");
   drawText(`${Math.ceil(timeLeft)}s`, W - 20, 40, 26, timeLeft < 10 ? "#ff6040" : "#f5e6c8", "right");
   drawText(`Best: ${best}`, W - 20, 72, 18, "#b8a888", "right");
@@ -405,15 +429,17 @@ function drawScreen(): void {
     drawBar();
     drawHeatGauge();
     if (messageTimer > 0) {
-      ctx.globalAlpha = messageTimer;
-      drawText(message, W / 2, 190 - (1 - messageTimer) * 20, 32, "#ffe080");
+      const fade = Math.min(1, messageTimer); // longer messages hold, then fade over the last second
+      ctx.globalAlpha = fade;
+      drawText(message, W / 2, 190 - (1 - fade) * 20, 32, messageColor);
       ctx.globalAlpha = 1;
     }
   } else {
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, W, H);
     drawText(endReason, W / 2, 170, 52);
-    drawText(`You forged ${swords} swords and earned ${gold} gold.`, W / 2, 230, 24);
+    const legendaryNote = legendaries > 0 ? ` (${legendaries} legendary)` : "";
+    drawText(`You forged ${swords} swords${legendaryNote} and earned ${gold} gold.`, W / 2, 230, 24);
     drawText(gold >= best && gold > 0 ? "New best!" : `Best: ${best}`, W / 2, 270, 22, "#ffd700");
     drawText("Press SPACE or click to play again", W / 2, 340, 24, "#ffb347");
   }
