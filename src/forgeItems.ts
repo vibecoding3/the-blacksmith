@@ -7,10 +7,18 @@ import type { ItemType } from "./items";
 export const BAR = { x: 150, y: 400, w: 500, h: 28 };
 const CY = BAR.y + BAR.h / 2;
 
+// What an item is for: weapons and armor are quenched and finished; jewelry is set with a gem
+// and polished; trade goods are only for selling.
+export type ItemKind = "weapon" | "armor" | "jewelry" | "trade";
+
 export interface ForgeItem {
   type: ItemType;
+  kind: ItemKind;
   label: string;
   note: string; // short description shown in the item picker
+  ore: number; // ore used per item
+  level: number; // blacksmith level that unlocks it (or a dungeon blueprint)
+  power: number; // base attack (weapons) or defense (armor), before metal and quality
   hits: number; // hits in the golden zone needed to finish the item
   heats: number; // heat cycles: the hits are split across this many heats
   valueMult: number; // value relative to a sword
@@ -21,7 +29,7 @@ export interface ForgeItem {
   drawFittings(ctx: CanvasRenderingContext2D): void; // parts that are not forged, such as a hilt
 }
 
-type Stats = Pick<ForgeItem, "type" | "label" | "note" | "hits" | "heats" | "valueMult" | "coolMult">;
+type Stats = Pick<ForgeItem, "type" | "kind" | "label" | "note" | "ore" | "level" | "power" | "hits" | "heats" | "valueMult" | "coolMult">;
 
 const toBar = (x: number) => (x - BAR.x) / BAR.w;
 
@@ -61,17 +69,17 @@ function bladed(stats: Stats, g: { grip: number; blade: number; tip: number; hal
 }
 
 const SWORD = bladed(
-  { type: "sword", label: "Sword", note: "Balanced all-rounder", hits: 5, heats: 2, valueMult: 1, coolMult: 1 },
+  { type: "sword", kind: "weapon", label: "Sword", note: "Balanced all-rounder", ore: 3, level: 1, power: 10, hits: 5, heats: 2, valueMult: 1, coolMult: 1 },
   { grip: 40, blade: 393, tip: 40, half: 14, guard: 26 },
 );
 
 const DAGGER = bladed(
-  { type: "dagger", label: "Dagger", note: "Thin blade: cools fast", hits: 3, heats: 1, valueMult: 0.5, coolMult: 1.5 },
+  { type: "dagger", kind: "weapon", label: "Dagger", note: "Thin blade: cools fast", ore: 2, level: 1, power: 6, hits: 3, heats: 1, valueMult: 0.5, coolMult: 1.5 },
   { grip: 30, blade: 200, tip: 40, half: 11, guard: 20 },
 );
 
 const GREATSWORD = bladed(
-  { type: "greatsword", label: "Greatsword", note: "Huge blade over three heats", hits: 8, heats: 3, valueMult: 2, coolMult: 1 },
+  { type: "greatsword", kind: "weapon", label: "Greatsword", note: "Huge blade over three heats", ore: 5, level: 6, power: 16, hits: 8, heats: 3, valueMult: 2, coolMult: 1 },
   { grip: 70, blade: 350, tip: 40, half: 18, guard: 32 },
 );
 
@@ -86,7 +94,7 @@ const AXE: ForgeItem = (() => {
   body.lineTo(headX, CY + 14);
   body.closePath();
   return {
-    type: "axe", label: "Axe", note: "Only the head is forged", hits: 6, heats: 2, valueMult: 1.3, coolMult: 1,
+    type: "axe", kind: "weapon", label: "Axe", note: "Only the head is forged", ore: 3, level: 2, power: 12, hits: 6, heats: 2, valueMult: 1.3, coolMult: 1,
     workStart: toBar(headX + 4),
     workEnd: toBar(edgeX),
     body,
@@ -107,7 +115,7 @@ const SPEAR: ForgeItem = (() => {
   body.quadraticCurveTo(580, BAR.y + BAR.h + 8, tipStart, CY);
   body.closePath();
   return {
-    type: "spear", label: "Spear", note: "Tiny forging area, few hits", hits: 4, heats: 1, valueMult: 0.9, coolMult: 1,
+    type: "spear", kind: "weapon", label: "Spear", note: "Tiny forging area, few hits", ore: 2, level: 3, power: 9, hits: 4, heats: 1, valueMult: 0.9, coolMult: 1,
     workStart: toBar(tipStart + 8),
     workEnd: toBar(tipEnd - 8),
     body,
@@ -129,7 +137,7 @@ const HELMET: ForgeItem = (() => {
   body.ellipse((left + right) / 2, BAR.y + BAR.h, (right - left) / 2, 46, 0, Math.PI, Math.PI * 2);
   body.closePath();
   return {
-    type: "helmet", label: "Helmet", note: "Armor for the head", hits: 6, heats: 2, valueMult: 1.2, coolMult: 1,
+    type: "helmet", kind: "armor", label: "Helmet", note: "Armor for the head", ore: 3, level: 4, power: 4, hits: 6, heats: 2, valueMult: 1.2, coolMult: 1,
     workStart: toBar(left + 30),
     workEnd: toBar(right - 30),
     body,
@@ -146,7 +154,7 @@ const SHIELD: ForgeItem = (() => {
   const body = new Path2D();
   body.ellipse(BAR.x + BAR.w / 2, CY, rx, 34, 0, 0, Math.PI * 2);
   return {
-    type: "shield", label: "Shield", note: "Thick metal: holds heat", hits: 7, heats: 2, valueMult: 1.4, coolMult: 0.7,
+    type: "shield", kind: "armor", label: "Shield", note: "Thick metal: holds heat", ore: 4, level: 5, power: 6, hits: 7, heats: 2, valueMult: 1.4, coolMult: 0.7,
     workStart: toBar(BAR.x + BAR.w / 2 - rx + 30),
     workEnd: toBar(BAR.x + BAR.w / 2 + rx - 30),
     body,
@@ -172,7 +180,7 @@ const CHESTPLATE: ForgeItem = (() => {
   body.lineTo(210, BAR.y + 18);
   body.closePath();
   return {
-    type: "chestplate", label: "Chestplate", note: "Biggest piece: armor for the chest", hits: 9, heats: 3, valueMult: 2.5, coolMult: 0.75,
+    type: "chestplate", kind: "armor", label: "Chestplate", note: "Biggest piece: armor for the chest", ore: 6, level: 8, power: 9, hits: 9, heats: 3, valueMult: 2.5, coolMult: 0.75,
     workStart: toBar(215),
     workEnd: toBar(585),
     body,
@@ -201,7 +209,7 @@ const HORSESHOE: ForgeItem = (() => {
   body.lineTo(armEnd, CY - inner.ry);
   body.closePath();
   return {
-    type: "horseshoe", label: "Horseshoe", note: "Quick trade good", hits: 2, heats: 1, valueMult: 0.25, coolMult: 1.2,
+    type: "horseshoe", kind: "trade", label: "Horseshoe", note: "Quick trade good", ore: 1, level: 1, power: 0, hits: 2, heats: 1, valueMult: 0.25, coolMult: 1.2,
     workStart: toBar(cx - outer.rx + 12),
     workEnd: toBar(armEnd - 8),
     body,
@@ -221,7 +229,7 @@ const NAILS: ForgeItem = (() => {
   body.lineTo(shaftX, CY + 6);
   body.closePath();
   return {
-    type: "nails", label: "Nails", note: "One hit, very cheap", hits: 1, heats: 1, valueMult: 0.1, coolMult: 1.5,
+    type: "nails", kind: "trade", label: "Nails", note: "One hit, very cheap", ore: 1, level: 1, power: 0, hits: 1, heats: 1, valueMult: 0.1, coolMult: 1.5,
     workStart: toBar(shaftX + 4),
     workEnd: toBar(pointX),
     body,
@@ -232,5 +240,67 @@ const NAILS: ForgeItem = (() => {
   };
 })();
 
-// Order of the item picker (keys 1-9, then 0).
-export const FORGE_ITEMS: ForgeItem[] = [SWORD, DAGGER, AXE, SPEAR, GREATSWORD, HELMET, SHIELD, CHESTPLATE, HORSESHOE, NAILS];
+// Jewelry: a band seen at an angle (ring, bracelet) or a hanging chain (necklace).
+// Needs a fine metal (silver, gold or mithril) and a gem.
+function band(stats: Stats, outer: { rx: number; ry: number }, inner: { rx: number; ry: number }): ForgeItem {
+  const cx = BAR.x + BAR.w / 2;
+  const body = new Path2D();
+  body.ellipse(cx, CY, outer.rx, outer.ry, 0, 0, Math.PI * 2);
+  body.moveTo(cx + inner.rx, CY);
+  body.ellipse(cx, CY, inner.rx, inner.ry, 0, 0, Math.PI * 2, true); // opposite direction leaves a hole
+  return {
+    ...stats,
+    workStart: toBar(cx - outer.rx + 12),
+    workEnd: toBar(cx + outer.rx - 12),
+    body,
+    drawFittings(ctx) {
+      ctx.fillStyle = "#6a6a74"; // gem setting on top of the band
+      ctx.beginPath();
+      ctx.arc(cx, CY - outer.ry - 6, 9, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  };
+}
+
+const RING = band(
+  { type: "ring", kind: "jewelry", label: "Ring", note: "Jewelry: needs fine metal and a gem", ore: 1, level: 4, power: 0, hits: 2, heats: 1, valueMult: 0.8, coolMult: 1.3 },
+  { rx: 110, ry: 32 }, { rx: 90, ry: 16 },
+);
+
+const BRACELET = band(
+  { type: "bracelet", kind: "jewelry", label: "Bracelet", note: "Jewelry: needs fine metal and a gem", ore: 1, level: 5, power: 0, hits: 3, heats: 1, valueMult: 1, coolMult: 1.2 },
+  { rx: 200, ry: 26 }, { rx: 184, ry: 13 },
+);
+
+const NECKLACE: ForgeItem = (() => {
+  const left = 190;
+  const right = 610;
+  const body = new Path2D();
+  body.moveTo(left, BAR.y - 14);
+  body.quadraticCurveTo(400, BAR.y + 50, right, BAR.y - 14);
+  body.lineTo(right, BAR.y - 2);
+  body.quadraticCurveTo(400, BAR.y + 62, left, BAR.y - 2);
+  body.closePath();
+  return {
+    type: "necklace", kind: "jewelry", label: "Necklace", note: "Jewelry: needs fine metal and a gem", ore: 2, level: 6, power: 0,
+    hits: 4, heats: 1, valueMult: 1.5, coolMult: 1.2,
+    workStart: toBar(left + 20),
+    workEnd: toBar(right - 20),
+    body,
+    drawFittings(ctx) {
+      ctx.fillStyle = "#6a6a74"; // pendant setting below the middle of the chain
+      ctx.beginPath();
+      ctx.arc(400, BAR.y + 44, 10, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  };
+})();
+
+// Order of the item picker (keys 1-9 and 0 pick the first ten).
+export const FORGE_ITEMS: ForgeItem[] = [
+  SWORD, DAGGER, AXE, SPEAR, GREATSWORD, HELMET, SHIELD, CHESTPLATE, HORSESHOE, NAILS, RING, BRACELET, NECKLACE,
+];
+
+export function forgeItemFor(type: ItemType): ForgeItem {
+  return FORGE_ITEMS.find((f) => f.type === type)!;
+}

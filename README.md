@@ -2,63 +2,113 @@
 
 <img src="public/favicon.svg" alt="Blacksmith Simulator logo" width="96">
 
-A small browser game written in TypeScript. Forge as many swords as you can in 60 seconds by striking the hot blade at just the right spot.
+A browser game written in TypeScript. Forge weapons, armor and jewelry from real metals, sell them at the market, fill customer orders, and take your best gear into dungeons to fight for ore, gems, gold and XP.
 
 **Play it here:** https://vibecoding3.github.io/the-blacksmith/
 
 ## How to play
 
-The menu bar on the left switches between the **Forge** (where you make items), your **Inventory** (where you equip them), the **Trade Market** (where you sell them) and the **Dungeon** (coming soon: fight monsters for items and XP). Your gold is shown under the menu buttons. The forge pauses while you're in another menu or reading help.
+The menu bar on the left switches between the game's menus. Your gold and blacksmith level are shown under the menu buttons. The forge pauses while you're in another menu or reading help.
+
+| Menu | What it's for |
+| --- | --- |
+| **Forge** | Make items: hammer, quench, sharpen/polish. Also used for repairs. |
+| **Inventory** | Equip gear in 8 slots, and send worn gear for repair. |
+| **Trade Market** | Buy ore and gems; sell items at today's prices. |
+| **Orders** | Customers who pay extra gold and XP for a specific item. |
+| **Dungeon** | Auto-battles with your equipped gear, for ore, gems, gold, XP and blueprints. |
+| **Workshop** | Permanent forge upgrades, bought with gold. |
+| **Blacksmith** | Level, XP and perks; save export/import; sound on/off. |
+
+### Controls
 
 | Key | Action |
 | --- | --- |
-| `A` / `←` | Move the marker left |
-| `D` / `→` | Move the marker right |
-| Mouse | Move the pointer left or right: the marker follows it |
-| `Space` / click | Strike the blade (also starts a new round) |
-| `S` / `↓` | Put the blade back in the forge to reheat it |
-| `1`–`9`, `0` / item bar | Choose what to forge next (between items) |
-| `H` / **? Help** button | Open or close the help panel (pauses the game) |
-| `I` / sidebar | `I` switches between **Forge** and **Inventory**; click the sidebar for any menu, including the **Trade Market** |
+| Mouse / `A` `D` / `←` `→` | Move the marker along the strike bar |
+| `Space` / click | Strike; quench; hold to sharpen or polish (also starts a round) |
+| `S` / `↓` | Put the metal back in the forge to reheat it |
+| `1`–`9`, `0` / item bar | Choose what to forge (between pieces) |
+| `I` | Switch between Forge and Inventory |
+| `M` | Sound on/off |
+| `H` / **? Help** | Help panel (pauses the game) |
 
-- The strike bar has the shape of the item you are forging (a sword for now). Steer the marker into the golden zone on the blade and strike. Only hits inside the zone count: a strike outside it ("Miss!") does nothing to the blade.
-- **Choosing what to forge:** the item bar at the top of the forge (or keys 1–9, 0) picks the next item. You can only switch between items, not halfway through one. The strike bar takes the shape of the chosen item, and only its metal part can be hammered.
-- **Hits and heats:** bigger items need more hits, spread over one or more heats. A sword takes **5 hits over 2 heats**: 3 hits on the first heat, then you must put it back in the forge (S or ↓), then 2 more hits. The pips under the bar show your progress, with a flame between the heats. Items hammered on hotter metal are worth more.
-- **Inventory:** finished swords go to your inventory (24 slots) instead of being sold. Open **Inventory** to see them, click one to select it, then **Equip** it on your blacksmith.
-- **Trade Market:** the place to sell. Select an item and press **Sell**, or use **Sell all normal** to sell every normal item at once (legendary items are kept). Equipped items can't be sold until you unequip them. Selling is the only way to earn gold. If the inventory is full, a newly forged sword is sold automatically. Your gold, items and equipment are saved in your browser.
-- **Tooltips:** hover over any item in the Inventory or Trade Market to see its name, tier, slot, description and value.
-- **Equipment:** eight slots: **Head**, **Chest**, **Weapon**, **Off-hand**, **Necklace**, **Bracelet** and two **Rings**. Equipping an item swaps it with whatever was in that slot (an item that fits two slots, like a ring, uses a free one first). No jewelry can be forged yet, so the jewelry slots stay empty for now. Trade goods can't be equipped.
+### Forging a piece
+
+1. **Choose** an item from the bar at the top and a metal below it (jewelry also needs a gem). Each piece uses ore from your stock, taken at the first hit.
+2. **Hammer:** steer the marker into the golden zone and strike. Only hits inside the zone count; each swing costs 1 energy. Bigger items need more hits, spread over several **heats**: between heats you must reheat the metal (S). Hits on hotter metal give better **quality**, and the golden zone shrinks as the metal cools. Below the blue cold line the metal can't be worked.
+3. **Quench** (weapons and armor): plunge the piece into water when its temperature is inside the green quench window. Too hot leaves cracks (−10%), in the window gives a perfect temper (+15%), too cool leaves it soft (no bonus).
+4. **Sharpen or polish** (weapons, armor and jewelry): hold Space or the mouse button at the grindstone and release in the green zone (up to +10%). Holding too long ruins the edge (−5%).
+5. The result is revealed: any piece can turn out **★ Legendary**, worth 5× as much, with 1.5× stats and a random **trait**.
+
+A round lasts 90 seconds with 100 energy (both can be raised). Each round ends a **day**: market prices change and new customer orders arrive.
 
 ### Items
 
-| # | Item | Hits / heats | Value (vs. sword) | Slot | Notes |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Sword | 5 / 2 | 1× (up to 100g) | Weapon | Balanced all-rounder |
-| 2 | Dagger | 3 / 1 | 0.5× | Weapon | Thin blade: cools 1.5× faster |
-| 3 | Axe | 6 / 2 | 1.3× | Weapon | Only the head is forged |
-| 4 | Spear | 4 / 1 | 0.9× | Weapon | Tiny forging area (just the tip) |
-| 5 | Greatsword | 8 / 3 | 2× | Weapon | Three heats |
-| 6 | Helmet | 6 / 2 | 1.2× | Head | |
-| 7 | Shield | 7 / 2 | 1.4× | Off-hand | Thick metal: cools 30% slower |
-| 8 | Chestplate | 9 / 3 | 2.5× | Chest | The biggest piece; cools 25% slower |
-| 9 | Horseshoe | 2 / 1 | 0.25× | — (trade good) | Quick, safe gold |
-| 0 | Nails | 1 / 1 | 0.1× | — (trade good) | One hit, very cheap |
+| # | Item | Ore | Hits / heats | Value | Kind | Unlocks at | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Sword | 3 | 5 / 2 | 1× | Weapon (attack 10) | Level 1 | Balanced all-rounder |
+| 2 | Dagger | 2 | 3 / 1 | 0.5× | Weapon (attack 6) | Level 1 | Thin blade: cools 1.5× faster |
+| 3 | Axe | 3 | 6 / 2 | 1.3× | Weapon (attack 12) | Level 2 | Only the head is forged |
+| 4 | Spear | 2 | 4 / 1 | 0.9× | Weapon (attack 9) | Level 3 | Tiny forging area |
+| 5 | Greatsword | 5 | 8 / 3 | 2× | Weapon (attack 16) | Level 6 | Three heats |
+| 6 | Helmet | 3 | 6 / 2 | 1.2× | Head (defense 4) | Level 4 | |
+| 7 | Shield | 4 | 7 / 2 | 1.4× | Off-hand (defense 6) | Level 5 | Holds heat well |
+| 8 | Chestplate | 6 | 9 / 3 | 2.5× | Chest (defense 9) | Level 8 | The biggest piece |
+| 9 | Horseshoe | 1 | 2 / 1 | 0.25× | Trade good | Level 1 | Quick, safe gold |
+| 0 | Nails | 1 | 1 / 1 | 0.1× | Trade good | Level 1 | One hit |
+| | Ring | 1 + gem | 2 / 1 | 0.8× | Ring (2 slots) | Level 4 | Needs silver, gold or mithril |
+| | Bracelet | 1 + gem | 3 / 1 | 1× | Bracelet | Level 5 | Needs silver, gold or mithril |
+| | Necklace | 2 + gem | 4 / 1 | 1.5× | Necklace | Level 6 | Needs silver, gold or mithril |
 
-Any item can turn out **legendary** (5× value).
-- **Item tiers:** every item you forge is either **Normal** or **★ Legendary**, revealed only when it's finished. The in-game help (**?** button or H) explains them.
-- **Legendary swords:** every finished sword has a chance to turn out legendary, shown as the orange ★ stat under your energy (5% for now). You only find out when the sword is done. A legendary sword sells for 5× the normal price.
-- **Energy:** you start each round with 100 energy, shown by the yellow lightning bolt under your sword count as current/maximum (e.g. 50/100). Every hammer swing costs 1 energy, whether it hits, misses or lands on cold metal. At 0 energy you can't forge any more and the round ends, even if time is left.
-- The golden zone gets smaller with every sword you finish.
-- **Heat:** the blade's temperature in °C is shown on the HEAT gauge on the right. The blade cools by about 30 °C per second in the air and 60 °C per strike.
-  - Temperatures follow real steel forging: the forge brings the blade to a **yellow 1200 °C**, and it glows orange, then cherry red as it cools. The blade and gauge change colour to match.
-  - Cooler metal is harder to work: the golden zone shrinks as the blade cools, and strikes are worth less.
-  - Below **800 °C** (cherry red, the blue line) the steel is too cold to shape, and strikes do nothing. Real smiths stop hammering here because the steel can crack.
-  - Press `S` or `↓` to reheat. The blade stays in the forge until it is fully hot, and you can't move or strike meanwhile. The colder it is, the longer this takes.
-  - Each new sword starts fully hot.
+Dungeon bosses can drop **blueprints** that unlock an item before you reach its level.
+
+### Metals and gems
+
+Forging temperatures follow real metalworking: steel and wrought iron are worked yellow-hot, while silver and gold melt at 962 °C and 1064 °C and are worked much cooler (they barely glow). Mithril is fantasy.
+
+| Metal | Forge heat | Cold below | Quench window | Value | Strength | Ore price | Unlocks at |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Copper | 900 °C | 650 °C | 550–650 °C | 0.4× | 0.5× | 3g | Level 1 |
+| Iron | 1250 °C | 850 °C | 800–900 °C | 0.7× | 0.8× | 5g | Level 1 |
+| Steel | 1200 °C | 800 °C | 760–860 °C | 1× | 1× | 10g | Level 2 |
+| Silver | 700 °C | 450 °C | 550–650 °C | 2× | 0.7× (jewelry 1×) | 25g | Level 4 |
+| Gold | 750 °C | 500 °C | 600–700 °C | 4.5× | 0.6× (jewelry 1.5×) | 60g | Level 6 |
+| Mithril | 1500 °C | 1100 °C | 1000–1100 °C | 10× | 2× (jewelry 2.5×) | 150g | Level 9 |
+
+Gems for jewelry: **Ruby** (+4 attack), **Sapphire** (+3 defense), **Emerald** (+20 HP), scaled by the metal and quality.
+
+New blacksmiths start with 10 copper and 15 iron ore.
+
+### Stats, traits and durability
+
+- **Attack / defense / HP** = the item's base power × metal strength × quality (50–100%) × quench and finish bonuses × 1.5 if legendary.
+- **Legendary traits:** Keen (+15% critical chance), Vampiric (heal 10% of damage dealt), Swift (20% chance to strike twice), Sturdy (never loses durability), Thorns (reflect 20% of damage taken), Blessed (+25% dungeon XP).
+- **Durability:** weapons and armor lose 4 durability per dungeon room. At 0 they work at half strength. **Repair** them from the Inventory: the item goes on the anvil for half its usual hits, using 1 ore of its metal.
+
+### Dungeons
+
+Your blacksmith fights automatically, room by room (4 rooms, then a boss), healing 15% between rooms. Loot, gold and XP are kept even if you retreat or are defeated.
+
+| Dungeon | Level | Entry | Boss | Loot |
+| --- | --- | --- | --- | --- |
+| Rat Cellar | 1 | Free | Giant Rat | Copper, iron, rare ruby |
+| Goblin Mines | 3 | 30g | Goblin Chief | Iron, steel, rubies, sapphires |
+| Crypt of Bones | 5 | 80g | Lich | Steel, silver, sapphires, emeralds |
+| Dragon's Lair | 8 | 200g | Ancient Dragon | Silver, gold, mithril, emeralds, rubies |
+
+### Progression
+
+- **XP** comes from forging, repairs, orders and dungeons. Each level gives a **perk point**: Lucky Hammer (+1% legendary chance), Stamina (+10 max energy), Heat Retention (metal cools 8% slower), Steady Hand (+6% golden zone), Haggler (+5% sale prices), Warrior (+5% dungeon attack).
+- **Workshop upgrades** (gold): Bellows (reheat 30% faster), Wide Anvil (+10% golden zone), Storage Chest (+8 inventory slots), Quench Tank (wider quench window), Fine Whetstone (wider finishing zone), Hourglass (+15 s per round).
+- **Market:** each day two item types are in demand (+30–60%) and one is out of fashion (−30%). Customer orders pay about 1.8× the minimum value they ask for, plus XP.
+
+### Saving
+
+Progress (gold, items, equipment, materials, level, perks, upgrades, orders, day) is saved in your browser automatically. The save has a format version, so saves from older game versions are upgraded automatically. In **Blacksmith** you can **export** your save as a file (as a backup or to move it to another browser) and **import** it again.
 
 ## Display
 
-The game renders at a fixed **1280×720** resolution and runs at up to **60 fps**, including on 120/144 Hz screens. In smaller browser windows it shrinks to fit while keeping its 16:9 shape.
+The game renders at a fixed **1280×720** resolution and runs at up to **60 fps**, including on 120/144 Hz screens. In smaller browser windows it shrinks to fit while keeping its 16:9 shape. Sound effects are synthesized in the browser (no audio files).
 
 ## Running locally
 
@@ -76,10 +126,19 @@ npm run preview  # serve the built dist/ folder
 | Path | Purpose |
 | --- | --- |
 | `index.html` | Page and game canvas |
-| `src/main.ts` | Game code: forging, menus, input, update loop and drawing |
-| `src/items.ts` | Item types, equipment slots, inventory and gold (saved in the browser) |
+| `src/main.ts` | Sidebar, input routing, help panel, screen effects and the game loop |
+| `src/ui.ts` | Canvas, layout and shared drawing helpers |
+| `src/forge.ts` | The forge: hammering, heats, quenching, finishing and repairs |
 | `src/forgeItems.ts` | Forgeable items: stats and strike-bar shapes |
-| `src/icons.ts` | Item icons for the inventory, market and item bar |
+| `src/items.ts` | Item model, stats, equipment, gold and materials |
+| `src/metals.ts` | Metals and gems |
+| `src/progression.ts` | Levels, XP, perks, workshop upgrades, unlocks and all bonuses |
+| `src/market.ts` | Daily demand, sale prices and customer orders |
+| `src/dungeons.ts` | Dungeons, monsters and the auto-battle |
+| `src/save.ts` | Versioned save, migrations, export and import |
+| `src/audio.ts` | Synthesized sound effects |
+| `src/icons.ts` | Item, ore and gem icons |
+| `src/screens/` | One file per menu (inventory, market, orders, dungeon, workshop, blacksmith) plus the shared bag grid |
 | `public/favicon.svg` | Logo, used as the browser-tab icon and on the start screen |
 | `VERSION` | Build number shown in the game |
 | `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
@@ -97,6 +156,17 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v24** – The big update:
+  - **Metals and materials:** copper, iron, steel, silver, gold and mithril, each with real working temperatures, quench windows, value and strength. Forging uses ore; buy ore and gems at the Trade Market or find them in dungeons.
+  - **Jewelry:** rings, bracelets and necklaces made from fine metals and set with a ruby, sapphire or emerald.
+  - **New forging steps:** quenching at the right temperature and sharpening/polishing at the grindstone.
+  - **Item stats** (attack, defense, HP), **legendary traits** and **durability**, with **repairs** at the forge.
+  - **Dungeons:** four dungeons with auto-battles, bosses and loot (ore, gems, gold, XP, blueprints).
+  - **Progression:** blacksmith levels and XP, a perk tree, and items and metals that unlock by level.
+  - **Economy:** daily market demand, customer **Orders**, and **Workshop** upgrades.
+  - **Sound effects** and screen shake; **save versioning** with automatic upgrades of old saves, plus save **export/import**.
+  - New **Orders**, **Workshop** and **Blacksmith** menus. Rounds now last 90 seconds.
+  - Existing saves are upgraded: earlier items become steel items, and you get the starter ore.
 - **v23** – New **Dungeon** menu in the sidebar. For now it is a placeholder (“Coming soon”); later you will enter dungeons to fight monsters and earn items and XP.
 - **v22** – The Inventory no longer shows the blacksmith figure. New equipment slots: **Necklace**, **Bracelet** and two **Rings** (jewelry items to fill them will come later).
 - **v21** – Hovering over an item in the Inventory (bag or equipment slots) or the Trade Market shows a tooltip with its name, tier, slot, a short description and its value. Item stats will be added to it later.
