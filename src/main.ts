@@ -10,6 +10,13 @@ const H = canvas.height;
 const ROUND_TIME = 60; // seconds
 const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
+const GAUGE = { x: 720, y: 140, w: 24, h: 180 };
+
+// Heat (0..1): the blade cools over time and with every strike.
+const COOL_RATE = 0.06; // heat lost per second
+const STRIKE_COOL = 0.12; // heat lost per strike
+const REHEAT_RATE = 1.0; // heat gained per second in the forge
+const COLD_HEAT = 0.25; // below this the metal is too cold to shape
 
 let state: State = "menu";
 let timeLeft = ROUND_TIME;
@@ -20,7 +27,9 @@ let marker = 0; // 0..1 position along the bar
 const MARKER_SPEED = 0.9; // bar-widths per second
 const held = new Set<string>(); // movement keys currently pressed
 let zoneCenter = 0.5;
-let zoneWidth = 0.18;
+let zoneBaseWidth = 0.18; // golden zone width when the blade is fully hot
+let heat = 1;
+let inForge = false;
 let message = "";
 let messageTimer = 0;
 let hammerAnim = 0; // 1 right after a strike, decays to 0
@@ -35,8 +44,13 @@ function safeSet(key: string, value: string): void {
 }
 
 function newZone(): void {
-  zoneWidth = Math.max(0.07, 0.18 - swords * 0.01);
-  zoneCenter = zoneWidth / 2 + Math.random() * (1 - zoneWidth);
+  zoneBaseWidth = Math.max(0.07, 0.18 - swords * 0.01);
+  zoneCenter = zoneBaseWidth / 2 + Math.random() * (1 - zoneBaseWidth);
+}
+
+// Hot metal is easier to work: the golden zone shrinks as the blade cools.
+function zoneWidth(): number {
+  return zoneBaseWidth * (0.4 + 0.6 * heat);
 }
 
 function startGame(): void {
@@ -47,6 +61,8 @@ function startGame(): void {
   strikes = [];
   marker = 0.5;
   sparks = [];
+  heat = 1;
+  inForge = false;
   newZone();
 }
 
@@ -56,11 +72,21 @@ function flash(text: string): void {
 }
 
 function strike(): void {
-  const dist = Math.abs(marker - zoneCenter);
-  const half = zoneWidth / 2;
-  const accuracy = dist <= half ? 1 - (dist / half) * 0.5 : Math.max(0, 0.5 - (dist - half) * 3);
-  strikes.push(accuracy);
+  if (inForge) return;
   hammerAnim = 1;
+  if (heat < COLD_HEAT) {
+    flash("Too cold! Reheat (S)");
+    return;
+  }
+
+  const dist = Math.abs(marker - zoneCenter);
+  const half = zoneWidth() / 2;
+  const aim = dist <= half ? 1 - (dist / half) * 0.5 : Math.max(0, 0.5 - (dist - half) * 3);
+  // Strikes on cooler metal are worth less (down to 60% just above the cold limit).
+  const warmth = (heat - COLD_HEAT) / (1 - COLD_HEAT);
+  const accuracy = aim * (0.6 + 0.4 * warmth);
+  strikes.push(accuracy);
+  heat = Math.max(0, heat - STRIKE_COOL);
 
   if (accuracy >= 0.9) flash("PERFECT!");
   else if (accuracy >= 0.5) flash("Good");
@@ -83,6 +109,7 @@ function strike(): void {
     gold += price;
     swords++;
     strikes = [];
+    heat = 1; // a fresh blank comes out of the forge hot
     flash(`Sword sold for ${price}g!`);
   }
   newZone();
@@ -95,6 +122,11 @@ function onAction(): void {
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
 const RIGHT_KEYS = ["KeyD", "ArrowRight"];
+const REHEAT_KEYS = ["KeyS", "ArrowDown"];
+
+function reheat(): void {
+  if (state === "playing" && !inForge && heat < 1) inForge = true;
+}
 
 window.addEventListener("keydown", (e) => {
   if (e.code === "Space" || e.code === "Enter") {
@@ -103,6 +135,9 @@ window.addEventListener("keydown", (e) => {
   } else if (LEFT_KEYS.includes(e.code) || RIGHT_KEYS.includes(e.code)) {
     e.preventDefault();
     held.add(e.code);
+  } else if (REHEAT_KEYS.includes(e.code)) {
+    e.preventDefault();
+    reheat();
   }
 });
 window.addEventListener("keyup", (e) => held.delete(e.code));
@@ -122,10 +157,17 @@ function update(dt: number): void {
 
   if (state !== "playing") return;
 
-  const left = LEFT_KEYS.some((k) => held.has(k));
-  const right = RIGHT_KEYS.some((k) => held.has(k));
-  const move = (right ? 1 : 0) - (left ? 1 : 0);
-  marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
+  if (inForge) {
+    // The blade stays in the fire until it is fully hot again; no steering meanwhile.
+    heat = Math.min(1, heat + REHEAT_RATE * dt);
+    if (heat >= 1) inForge = false;
+  } else {
+    heat = Math.max(0, heat - COOL_RATE * dt);
+    const left = LEFT_KEYS.some((k) => held.has(k));
+    const right = RIGHT_KEYS.some((k) => held.has(k));
+    const move = (right ? 1 : 0) - (left ? 1 : 0);
+    marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
+  }
 
   timeLeft -= dt;
   if (timeLeft <= 0) {
@@ -145,6 +187,22 @@ function drawText(text: string, x: number, y: number, size: number, color = "#f5
   ctx.fillText(text, x, y);
 }
 
+// Blade colour runs from dull grey (cold) to bright orange-yellow (hot).
+function heatColor(h: number): string {
+  const r = Math.round(120 + 135 * h);
+  const g = Math.round(120 + 70 * h);
+  const b = Math.round(130 - 100 * h);
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawBlade(x: number, y: number): void {
+  ctx.fillStyle = heatColor(heat);
+  ctx.fillRect(x, y, 180, 10);
+  ctx.beginPath(); ctx.moveTo(x + 180, y); ctx.lineTo(x + 205, y + 5); ctx.lineTo(x + 180, y + 10); ctx.fill();
+  ctx.fillStyle = "#5a3a22";
+  ctx.fillRect(x - 25, y - 2, 25, 14);
+}
+
 function drawForge(): void {
   // Background wall and forge glow
   ctx.fillStyle = "#2b1d18";
@@ -155,6 +213,20 @@ function drawForge(): void {
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
+  // Forge on the left, with flickering fire
+  ctx.fillStyle = "#5a2e22";
+  ctx.fillRect(30, 200, 150, 140);
+  ctx.fillStyle = "#1a0d08";
+  ctx.fillRect(50, 230, 110, 70);
+  const flicker = 0.75 + Math.random() * 0.25;
+  ctx.fillStyle = `rgba(255,${Math.round(90 + 60 * flicker)},20,${flicker})`;
+  ctx.beginPath();
+  ctx.moveTo(55, 300);
+  for (let i = 0; i <= 10; i++) ctx.lineTo(55 + i * 10, 300 - (i % 2 ? 35 : 15) * flicker - Math.random() * 10);
+  ctx.lineTo(155, 300);
+  ctx.closePath();
+  ctx.fill();
+
   // Anvil
   ctx.fillStyle = "#4a4a52";
   ctx.beginPath();
@@ -164,16 +236,9 @@ function drawForge(): void {
   ctx.fillRect(340, 285, 120, 40);
   ctx.fillRect(300, 325, 200, 20);
 
-  // Glowing blade on the anvil — cools toward grey as strikes accumulate
-  const heat = 1 - strikes.length / STRIKES_PER_SWORD;
-  const r = Math.round(120 + 135 * heat);
-  const g = Math.round(120 + 40 * heat);
-  const b = Math.round(130 - 100 * heat);
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
-  ctx.fillRect(310, 230, 180, 10);
-  ctx.beginPath(); ctx.moveTo(490, 230); ctx.lineTo(515, 235); ctx.lineTo(490, 240); ctx.fill();
-  ctx.fillStyle = "#5a3a22";
-  ctx.fillRect(285, 228, 25, 14);
+  // Blade: in the fire while reheating, otherwise on the anvil
+  if (inForge) drawBlade(60, 272);
+  else drawBlade(310, 230);
 
   // Hammer (swings down on strike)
   ctx.save();
@@ -192,15 +257,34 @@ function drawForge(): void {
   }
 }
 
+function drawHeatGauge(): void {
+  const { x, y, w, h } = GAUGE;
+  ctx.fillStyle = "#111";
+  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.fillStyle = "#2a1c18";
+  ctx.fillRect(x, y, w, h);
+  const fill = heat * h;
+  ctx.fillStyle = heatColor(heat);
+  ctx.fillRect(x, y + h - fill, w, fill);
+  // Cold limit line
+  const coldY = y + h - COLD_HEAT * h;
+  ctx.fillStyle = "#6ab0ff";
+  ctx.fillRect(x - 6, coldY - 1, w + 12, 2);
+  drawText("HEAT", x + w / 2, y - 12, 16);
+  if (inForge) drawText("Heating...", x + w / 2, y + h + 28, 16, "#ffb347");
+  else if (heat < COLD_HEAT) drawText("Press S!", x + w / 2, y + h + 28, 16, "#6ab0ff");
+}
+
 function drawBar(): void {
   ctx.fillStyle = "#111";
   ctx.fillRect(BAR.x - 3, BAR.y - 3, BAR.w + 6, BAR.h + 6);
   ctx.fillStyle = "#553322";
   ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
 
-  const zx = BAR.x + (zoneCenter - zoneWidth / 2) * BAR.w;
+  const zw = zoneWidth();
+  const zx = BAR.x + (zoneCenter - zw / 2) * BAR.w;
   ctx.fillStyle = "#e0a030";
-  ctx.fillRect(zx, BAR.y, zoneWidth * BAR.w, BAR.h);
+  ctx.fillRect(zx, BAR.y, zw * BAR.w, BAR.h);
   ctx.fillStyle = "#fff3a0";
   ctx.fillRect(BAR.x + zoneCenter * BAR.w - 3, BAR.y, 6, BAR.h);
 
@@ -231,13 +315,13 @@ function render(): void {
 }
 
 function drawScreen(): void {
-
   if (state === "menu") {
     drawText("Blacksmith Simulator", W / 2, 110, 48);
-    drawText("Steer the marker with A/D or the arrow keys,", W / 2, 375, 20);
-    drawText("then press SPACE or click to strike in the golden zone.", W / 2, 400, 20);
-    drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 425, 20);
-    drawText("Press SPACE or click to start", W / 2, 470, 24, "#ffb347");
+    drawText("Steer the marker with A/D or the arrow keys,", W / 2, 360, 20);
+    drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
+    drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);
+    drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 435, 20);
+    drawText("Press SPACE or click to start", W / 2, 475, 24, "#ffb347");
     return;
   }
 
@@ -248,6 +332,7 @@ function drawScreen(): void {
 
   if (state === "playing") {
     drawBar();
+    drawHeatGauge();
     if (messageTimer > 0) {
       ctx.globalAlpha = messageTimer;
       drawText(message, W / 2, 190 - (1 - messageTimer) * 20, 32, "#ffe080");
