@@ -8,7 +8,7 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 
 ## How to play
 
-The menu bar on the left switches between the **Forge** (where you make items), your **Inventory** (where you equip them) and the **Trade Market** (where you sell them). Your gold is shown under the menu buttons. The forge pauses while you're in another menu or reading help.
+The menu bar on the left switches between the **Forge** (where you make items), your **Inventory** (where you equip them), the **Trade Market** (where you sell them) and the **Dungeon** (coming soon: fight monsters for items and XP). Your gold is shown under the menu buttons. The forge pauses while you're in another menu or reading help.
 
 | Key | Action |
 | --- | --- |
@@ -97,6 +97,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v23** – New **Dungeon** menu in the sidebar. For now it is a placeholder (“Coming soon”); later you will enter dungeons to fight monsters and earn items and XP.
 - **v22** – The Inventory no longer shows the blacksmith figure. New equipment slots: **Necklace**, **Bracelet** and two **Rings** (jewelry items to fill them will come later).
 - **v21** – Hovering over an item in the Inventory (bag or equipment slots) or the Trade Market shows a tooltip with its name, tier, slot, a short description and its value. Item stats will be added to it later.
 - **v20** – Equipped items are no longer drawn on the blacksmith figure in the Inventory; they are shown only in their equipment slots.

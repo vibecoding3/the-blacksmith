@@ -10,11 +10,12 @@ import {
 type State = "menu" | "playing" | "over";
 
 // Sidebar tabs. More menus will be added here later.
-type Tab = "forge" | "inventory" | "market";
+type Tab = "forge" | "inventory" | "market" | "dungeon";
 const TABS: { id: Tab; label: string }[] = [
   { id: "forge", label: "Forge" },
   { id: "inventory", label: "Inventory" },
   { id: "market", label: "Trade Market" },
+  { id: "dungeon", label: "Dungeon" },
 ];
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
@@ -634,8 +635,10 @@ function render(): void {
     drawScreen();
   } else if (tab === "inventory") {
     drawInventory();
-  } else {
+  } else if (tab === "market") {
     drawMarket();
+  } else {
+    drawDungeon();
   }
   if (helpOpen) drawHelp();
   // The sidebar goes on top of any dimming, so its buttons always stay usable.
@@ -904,6 +907,49 @@ function drawTooltip(it: Item | undefined): void {
     drawText(l.text, x + pad, ty - 2, l.size, l.color, "left");
     ty += lineGap;
   }
+}
+
+// ---- Dungeon screen (placeholder) ----
+// Later: choose a dungeon, fight monsters with your equipment, and earn items and XP.
+
+function drawDungeon(): void {
+  drawText("Dungeon", 40, 60, 34, "#f5e6c8", "left");
+
+  // A stone archway with a dark doorway and two torches
+  const cx = W / 2;
+  const top = 130;
+  ctx.fillStyle = "#4a4a52";
+  ctx.fillRect(cx - 110, top + 40, 220, 190);
+  ctx.beginPath();
+  ctx.arc(cx, top + 40, 110, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = "#2b2b31"; // stone blocks
+  ctx.lineWidth = 2;
+  for (let row = 0; row < 5; row++) {
+    const y = top + 70 + row * 36;
+    ctx.beginPath();
+    ctx.moveTo(cx - 110, y);
+    ctx.lineTo(cx + 110, y);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#0d0907"; // doorway
+  ctx.fillRect(cx - 60, top + 80, 120, 150);
+  ctx.beginPath();
+  ctx.arc(cx, top + 80, 60, Math.PI, 0);
+  ctx.fill();
+  for (const tx of [cx - 85, cx + 85]) {
+    ctx.fillStyle = "#6b4423";
+    ctx.fillRect(tx - 3, top + 110, 6, 26);
+    const flicker = 0.8 + Math.random() * 0.2;
+    ctx.fillStyle = `rgba(255,${Math.round(120 + 60 * flicker)},30,${flicker})`;
+    ctx.beginPath();
+    ctx.ellipse(tx, top + 100, 6, 12 * flicker, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawText("Coming soon", cx, top + 280, 30, "#e0a030");
+  drawText("Enter dungeons to fight monsters with the gear you forge,", cx, top + 312, 17, "#f5e6c8");
+  drawText("and bring back new items and XP.", cx, top + 335, 17, "#f5e6c8");
 }
 
 function drawMarket(): void {
