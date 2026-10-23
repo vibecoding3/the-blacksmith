@@ -1,6 +1,7 @@
 // The Mine: dig your own ore instead of buying it. Each day there is a fresh rock wall; you get
-// a limited number of pickaxe swings per trip. Breaking a tile reveals its neighbours, and the
-// deeper you dig, the rarer the ore. Steel isn't found in the ground: it is smelted from iron.
+// a limited number of pickaxe swings per trip. The whole wall is visible, but you can only dig a
+// rock in the top row or next to one you've already broken, so reaching the rare ore deep down
+// means digging a path to it. Steel isn't found in the ground: it is smelted from iron.
 
 import { addMaterial, materialCount, spendMaterial } from "./items";
 import { GEM_IDS, type MaterialId } from "./metals";
@@ -34,8 +35,7 @@ export interface MineTile {
   hp: number;
   maxHp: number;
   broken: boolean;
-  revealed: boolean;
-  spot: { x: number; y: number }; // the weak spot, as a fraction of the tile (0..1)
+  reachable: boolean; // in the top row, or next to a broken tile
 }
 
 export interface MineState {
@@ -46,7 +46,6 @@ export interface MineState {
 }
 
 const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
-const newSpot = () => ({ x: 0.2 + Math.random() * 0.6, y: 0.2 + Math.random() * 0.6 });
 
 function rollKind(row: number): TileKind {
   const odds = ODDS[Math.min(ODDS.length - 1, Math.floor(row / 2))];
@@ -63,7 +62,7 @@ function generate(): MineState {
   for (let row = 0; row < MINE_ROWS; row++) {
     for (let col = 0; col < MINE_COLS; col++) {
       const kind = rollKind(row);
-      tiles.push({ kind, hp: TILE_HP[kind], maxHp: TILE_HP[kind], broken: false, revealed: row === 0, spot: newSpot() });
+      tiles.push({ kind, hp: TILE_HP[kind], maxHp: TILE_HP[kind], broken: false, reachable: row === 0 });
     }
   }
   return { day: save.day, swings: SWINGS_PER_TRIP, tiles, haul: {} };
@@ -78,36 +77,35 @@ export function currentMine(): MineState {
   return save.mine;
 }
 
-function reveal(m: MineState, index: number): void {
+// Breaking a tile opens the way to the tiles around it.
+function openNeighbours(m: MineState, index: number): void {
   const row = Math.floor(index / MINE_COLS);
   const col = index % MINE_COLS;
   for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const r = row + dr;
     const c = col + dc;
-    if (r >= 0 && r < MINE_ROWS && c >= 0 && c < MINE_COLS) m.tiles[r * MINE_COLS + c].revealed = true;
+    if (r >= 0 && r < MINE_ROWS && c >= 0 && c < MINE_COLS) m.tiles[r * MINE_COLS + c].reachable = true;
   }
 }
 
 export interface SwingResult {
   damage: number;
-  critical: boolean;
   broken: boolean;
   loot?: { id: MaterialId; amount: number };
 }
 
-// One pickaxe swing at a tile. `onWeakSpot` doubles the damage. Returns null if the swing isn't possible.
-export function swing(index: number, onWeakSpot: boolean): SwingResult | null {
+// One pickaxe swing at a tile. Returns null if the tile can't be reached (or no swings are left).
+export function swing(index: number): SwingResult | null {
   const m = currentMine();
   const tile = m.tiles[index];
-  if (!tile || !tile.revealed || tile.broken || m.swings <= 0) return null;
+  if (!tile || !tile.reachable || tile.broken || m.swings <= 0) return null;
   m.swings--;
-  const damage = pickaxePower() * (onWeakSpot ? 2 : 1);
+  const damage = pickaxePower();
   tile.hp = Math.max(0, tile.hp - damage);
-  tile.spot = newSpot();
-  const result: SwingResult = { damage, critical: onWeakSpot, broken: tile.hp === 0 };
+  const result: SwingResult = { damage, broken: tile.hp === 0 };
   if (result.broken) {
     tile.broken = true;
-    reveal(m, index);
+    openNeighbours(m, index);
     let loot: SwingResult["loot"];
     if (tile.kind === "gem") loot = { id: GEM_IDS[Math.floor(Math.random() * GEM_IDS.length)], amount: 1 };
     else if (tile.kind === "stone") loot = Math.random() < 0.15 ? { id: "copper", amount: 1 } : undefined;

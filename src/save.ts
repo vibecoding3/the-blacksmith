@@ -5,7 +5,7 @@ import { forgeItemFor } from "./forgeItems";
 import type { Item, ItemType, Slot } from "./items";
 import type { MineState } from "./mine";
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 // Ore every new blacksmith starts with (also given to players whose save predates materials).
 const STARTER_MATERIALS = { copper: 10, iron: 15 };
@@ -67,6 +67,11 @@ function migrate(data: Record<string, unknown>): SaveData {
   // v1 -> v2: progression, materials, orders, market and settings fields (filled from defaults below).
   // v2 -> v3: items gain metal, quality, quench/finish bonuses and durability.
   // v3 -> v4: the Mine (today's rock wall), filled from defaults below.
+  // v4 -> v5: mine tiles are all visible; "revealed" becomes "reachable" and weak spots are gone.
+  if ((d.version as number) < 5 && d.mine) {
+    const mine = d.mine as { tiles: Record<string, unknown>[] };
+    mine.tiles = mine.tiles.map(({ revealed, spot: _spot, ...tile }) => ({ ...tile, reachable: revealed === true }));
+  }
   if ((d.version as number) < 3) {
     const upgrade = (item: Item & { quality?: number }) => {
       if (item.metal) return item;

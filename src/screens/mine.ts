@@ -1,5 +1,5 @@
-// Mine: click revealed rock tiles to swing the pickaxe. Hitting a tile's glowing weak spot does
-// double damage. Breaking a tile reveals its neighbours; deeper rows hold rarer ore.
+// Mine: click a reachable rock to swing the pickaxe. The whole wall is visible, but only rocks in
+// the top row or next to a broken one can be dug, so you dig a path down to the rare ore.
 
 import { sfx } from "../audio";
 import { drawMaterialIcon } from "../icons";
@@ -18,7 +18,6 @@ const GRID_X = 300;
 const GRID_Y = 95;
 const SMELT_1: Rect = { x: 56, y: 424, w: 100, h: 32 };
 const SMELT_5: Rect = { x: 164, y: 424, w: 100, h: 32 };
-const WEAK_SPOT_RADIUS = 9;
 
 type Floater = { text: string; x: number; y: number; color: string; life: number };
 type Chip = { x: number; y: number; vx: number; vy: number; life: number; color: string };
@@ -40,7 +39,7 @@ function tileAt(p: Point): number {
 function canSwing(i: number): boolean {
   const m = currentMine();
   const t = m.tiles[i];
-  return t !== undefined && t.revealed && !t.broken && m.swings > 0;
+  return t !== undefined && t.reachable && !t.broken && m.swings > 0;
 }
 
 const canSmelt = (n: number) => materialCount("iron") >= IRON_PER_STEEL * n;
@@ -77,7 +76,9 @@ function chipBurst(r: Rect, color: string, n: number): void {
 export function mineClick(p: Point): void {
   const h = hit(p);
   if (!h) {
-    if (currentMine().swings <= 0 && tileAt(p) >= 0) app.notice = "Out of swings for today. Finish a forging round to start a new day.";
+    const t = currentMine().tiles[tileAt(p)];
+    if (currentMine().swings <= 0 && t) app.notice = "Out of swings for today. Finish a forging round to start a new day.";
+    else if (t && !t.reachable && !t.broken) app.notice = "Too deep to reach: dig down to it from the top row.";
     return;
   }
   if (h.kind === "smelt") {
@@ -89,15 +90,12 @@ export function mineClick(p: Point): void {
   const m = currentMine();
   const tile = m.tiles[h.index];
   const r = tileRect(h.index);
-  const spot = { x: r.x + tile.spot.x * r.w, y: r.y + tile.spot.y * r.h };
-  const weak = Math.hypot(p.x - spot.x, p.y - spot.y) <= WEAK_SPOT_RADIUS;
-  const res = swing(h.index, weak);
+  const res = swing(h.index);
   if (!res) return;
   app.notice = "";
   sfx.pick();
-  shake(res.critical ? 3 : 1.5, 0.08);
-  chipBurst(r, kindColor(tile), res.critical ? 10 : 5);
-  if (res.critical) floaters.push({ text: "Crack!", x: r.x + r.w / 2, y: r.y + 10, color: "#ffe080", life: 0.8 });
+  shake(1.5, 0.08);
+  chipBurst(r, kindColor(tile), 6);
   if (res.broken) {
     sfx.rockBreak();
     chipBurst(r, "#6e625a", 14);
@@ -145,11 +143,6 @@ function drawTile(i: number, t: MineTile): void {
   const row = Math.floor(i / MINE_COLS);
   ctx.beginPath();
   ctx.roundRect(r.x, r.y, r.w, r.h, 6);
-  if (!t.revealed) {
-    ctx.fillStyle = "#140d0b";
-    ctx.fill();
-    return;
-  }
   if (t.broken) {
     ctx.fillStyle = "#0b0706";
     ctx.fill();
@@ -196,19 +189,13 @@ function drawTile(i: number, t: MineTile): void {
     ctx.stroke();
   }
 
-  // Weak spot (double damage): a pulsing white target ring, distinct from the ore specks
-  const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 180 + i);
-  const sx = r.x + t.spot.x * r.w;
-  const sy = r.y + t.spot.y * r.h;
-  ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.4 * pulse})`;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(sx, sy, WEAK_SPOT_RADIUS * (0.75 + 0.2 * pulse), 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.beginPath();
-  ctx.arc(sx, sy, 2, 0, Math.PI * 2);
-  ctx.fill();
+  // Rocks you can't reach yet are shaded: dig a path down to them
+  if (!t.reachable) {
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 6);
+    ctx.fillStyle = "rgba(10,6,5,0.55)";
+    ctx.fill();
+  }
 }
 
 function tileLabel(t: MineTile): string {
@@ -220,7 +207,7 @@ function tileLabel(t: MineTile): string {
 export function drawMine(): void {
   const m = currentMine();
   drawTitle("Mine");
-  drawText("Dig deeper for rarer ore. Hit a rock's white target ring for double damage.", 40, 84, 13, "#b8a888", "left");
+  drawText("Start at the top and dig a path down: the deeper rocks hold the rarest ore.", 40, 84, 13, "#b8a888", "left");
 
   // Today's trip
   drawPanel(SIDE_PANEL);
@@ -266,7 +253,7 @@ export function drawMine(): void {
   const i = tileAt(input.pointer);
   const t = m.tiles[i];
   const line = app.notice
-    || (t && t.revealed && !t.broken ? `${tileLabel(t)}: ${t.hp}/${t.maxHp} to break` : "")
+    || (t && !t.broken ? (t.reachable ? `${tileLabel(t)}: ${t.hp}/${t.maxHp} to break` : `${tileLabel(t)}: dig down to reach it`) : "")
     || (m.swings > 0 ? "Click a rock to swing your pickaxe." : "Out of swings. Fresh veins tomorrow (after a forging round).");
   drawText(line, GRID_X + (MINE_COLS * (TILE + GAP) - GAP) / 2, 468, 13, app.notice ? "#9fd86a" : "#b8a888");
 }

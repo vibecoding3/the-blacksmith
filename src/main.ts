@@ -311,7 +311,7 @@ function drawHelp(): void {
   line("Last, hold SPACE (or the mouse) to sharpen or polish, and let go in the green zone.");
   y += 6;
   heading("Your smithy");
-  line("Mine: dig your own ore (40 swings a day; deeper is rarer) and smelt iron into steel.");
+  line("Mine: dig a path down from the top for ore (40 swings a day; deeper is rarer); smelt iron to steel.");
   line("Inventory: equip gear (10 slots) and repair worn items. Trade Market: buy ore and gems, sell.");
   line("Prices change every day (after each forging round). Orders: customers pay extra for items.");
   line("Dungeon: fight with your gear for ore, gems, gold, XP and blueprints. Gear wears down.");

@@ -87,10 +87,9 @@ New blacksmiths start with 10 copper and 15 iron ore.
 Instead of buying ore, you can dig it yourself in the **Mine**:
 
 - Each day there is a fresh rock wall of 8 × 6 tiles, and you get **40 pickaxe swings** for that day's trip. A new day starts after each forging round.
-- Only the top row is visible at first. Breaking a tile reveals the tiles around it, so you dig your way down.
+- The whole wall is visible, so you can see where the good ore is. But you can only dig a rock in the **top row** or **next to a rock you've already broken**, so you have to dig a path down from the top to reach the treasures deep below. Rocks you can't reach yet are shaded.
 - **Deeper is rarer:** the top rows hold copper and iron; the middle rows add silver, gold and gem pockets; mithril only appears in the deepest rows.
 - Harder ores need more hits: stone 2, copper 3, iron 4, silver 5, gold 6, gem 6, mithril 8.
-- Each rock shows a white **target ring**: hitting it does double damage ("Crack!"), and then it moves.
 - Veins give copper 2–4, iron 1–3, silver 1–2, gold 1–2 or mithril 1; gem pockets give a random gem; plain stone sometimes holds 1 copper. Mining also gives a little XP.
 - **Steel isn't mined**, just as in real life: it's made from iron. The Mine's **smelter** turns 2 iron ore into 1 steel.
 - The **Steel Pickaxe** workshop upgrade adds +1 damage per swing (up to 3 levels).
@@ -173,6 +172,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v29** – Mine changes: the target rings and double damage are gone (every swing does the same damage). The whole rock wall is visible from the start, but you can only dig rocks in the top row or next to one you have broken, so you dig a path down to the rare ore.
 - **v28** – New **Mine** menu: dig your own ore and gems in a daily rock wall (40 pickaxe swings per day). Breaking rocks reveals deeper ones, which hold rarer ore; hitting a rock's target ring does double damage. Includes a smelter (2 iron → 1 steel) and a new **Steel Pickaxe** workshop upgrade. The Workshop now shows its upgrades in a 2 × 4 grid.
 - **v27** – The Trade Market shows how much of each material you own as “x10” instead of “have 10”.
 - **v26** – In the Inventory, the Weapon and Off-hand slots now sit side by side (weapon on the left) in the bottom row between the armor and jewelry columns.
