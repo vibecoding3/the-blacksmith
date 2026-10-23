@@ -107,6 +107,15 @@ export const sfx = {
   levelUp() { arpeggio([392, 523, 659, 784, 1047], 0.07, "square", 0.08, 0.25); },
   click() { tone(900, 0.04, "square", 0.04); },
   error() { tone(200, 0.18, "sawtooth", 0.06, 0, 140); },
+  // Mining
+  pick() {
+    tone(260 + Math.random() * 60, 0.12, "triangle", 0.12, 0, 140);
+    noise(0.08, 0.2, "lowpass", 1200);
+  },
+  rockBreak() {
+    noise(0.35, 0.3, "lowpass", 900, 0, 200);
+    tone(120, 0.25, "sine", 0.15, 0, 60);
+  },
   // Dungeon fights
   slash() {
     noise(0.1, 0.22, "bandpass", 1800, 0, 600);

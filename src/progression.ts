@@ -67,7 +67,7 @@ export function buyPerk(id: PerkId): boolean {
 
 // ---- Workshop upgrades: bought with gold ----
 
-export type UpgradeId = "bellows" | "anvil" | "storage" | "tank" | "whetstone" | "hourglass";
+export type UpgradeId = "bellows" | "anvil" | "storage" | "tank" | "whetstone" | "hourglass" | "pickaxe";
 export const UPGRADES: { id: UpgradeId; label: string; desc: string; costs: number[] }[] = [
   { id: "bellows", label: "Bellows", desc: "Reheat 30% faster", costs: [150, 400, 900] },
   { id: "anvil", label: "Wide Anvil", desc: "+10% golden zone width", costs: [200, 500, 1200] },
@@ -75,6 +75,7 @@ export const UPGRADES: { id: UpgradeId; label: string; desc: string; costs: numb
   { id: "tank", label: "Quench Tank", desc: "Quench window 25% wider", costs: [250, 600] },
   { id: "whetstone", label: "Fine Whetstone", desc: "Finishing sweet spot 30% wider", costs: [250, 600] },
   { id: "hourglass", label: "Hourglass", desc: "+15 s per forging round", costs: [200, 500, 1000] },
+  { id: "pickaxe", label: "Steel Pickaxe", desc: "+1 mining damage per swing", costs: [200, 600, 1500] },
 ];
 
 export function upgradeLevel(id: UpgradeId): number {
@@ -118,3 +119,4 @@ export const inventorySize = () => 24 + 8 * upgradeLevel("storage");
 export const roundTime = () => 90 + 15 * upgradeLevel("hourglass");
 export const quenchWidthMult = () => 1 + 0.25 * upgradeLevel("tank");
 export const finishWidthMult = () => 1 + 0.3 * upgradeLevel("whetstone");
+export const pickaxePower = () => 1 + upgradeLevel("pickaxe");

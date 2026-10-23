@@ -13,6 +13,7 @@ The menu bar on the left switches between the game's menus. Your gold and blacks
 | Menu | What it's for |
 | --- | --- |
 | **Forge** | Make items: hammer, quench, sharpen/polish. Also used for repairs. |
+| **Mine** | Dig your own ore and gems (one trip a day), and smelt iron into steel. |
 | **Inventory** | Equip gear in 10 slots, and send worn gear for repair. |
 | **Trade Market** | Buy ore and gems; sell items at today's prices. |
 | **Orders** | Customers who pay extra gold and XP for a specific item. |
@@ -81,6 +82,19 @@ Gems for jewelry: **Ruby** (+4 attack), **Sapphire** (+3 defense), **Emerald** (
 
 New blacksmiths start with 10 copper and 15 iron ore.
 
+### Mining
+
+Instead of buying ore, you can dig it yourself in the **Mine**:
+
+- Each day there is a fresh rock wall of 8 × 6 tiles, and you get **40 pickaxe swings** for that day's trip. A new day starts after each forging round.
+- Only the top row is visible at first. Breaking a tile reveals the tiles around it, so you dig your way down.
+- **Deeper is rarer:** the top rows hold copper and iron; the middle rows add silver, gold and gem pockets; mithril only appears in the deepest rows.
+- Harder ores need more hits: stone 2, copper 3, iron 4, silver 5, gold 6, gem 6, mithril 8.
+- Each rock shows a white **target ring**: hitting it does double damage ("Crack!"), and then it moves.
+- Veins give copper 2–4, iron 1–3, silver 1–2, gold 1–2 or mithril 1; gem pockets give a random gem; plain stone sometimes holds 1 copper. Mining also gives a little XP.
+- **Steel isn't mined**, just as in real life: it's made from iron. The Mine's **smelter** turns 2 iron ore into 1 steel.
+- The **Steel Pickaxe** workshop upgrade adds +1 damage per swing (up to 3 levels).
+
 ### Stats, traits and durability
 
 - **Attack / defense / HP** = the item's base power × metal strength × quality (50–100%) × quench and finish bonuses × 1.5 if legendary.
@@ -101,7 +115,7 @@ Your blacksmith fights automatically, room by room (4 rooms, then a boss), heali
 ### Progression
 
 - **XP** comes from forging, repairs, orders and dungeons. Each level gives a **perk point**: Lucky Hammer (+1% legendary chance), Stamina (+10 max energy), Heat Retention (metal cools 8% slower), Steady Hand (+6% golden zone), Haggler (+5% sale prices), Warrior (+5% dungeon attack).
-- **Workshop upgrades** (gold): Bellows (reheat 30% faster), Wide Anvil (+10% golden zone), Storage Chest (+8 inventory slots), Quench Tank (wider quench window), Fine Whetstone (wider finishing zone), Hourglass (+15 s per round).
+- **Workshop upgrades** (gold): Bellows (reheat 30% faster), Wide Anvil (+10% golden zone), Storage Chest (+8 inventory slots), Quench Tank (wider quench window), Fine Whetstone (wider finishing zone), Hourglass (+15 s per round), Steel Pickaxe (+1 mining damage).
 - **Market:** each day two item types are in demand (+30–60%) and one is out of fashion (−30%). Customer orders pay about 1.8× the minimum value they ask for, plus XP.
 
 ### Saving
@@ -136,11 +150,12 @@ npm run preview  # serve the built dist/ folder
 | `src/metals.ts` | Metals and gems |
 | `src/progression.ts` | Levels, XP, perks, workshop upgrades, unlocks and all bonuses |
 | `src/market.ts` | Daily demand, sale prices and customer orders |
+| `src/mine.ts` | The Mine: daily rock wall, ore odds by depth, mining and smelting |
 | `src/dungeons.ts` | Dungeons, monsters and the auto-battle |
 | `src/save.ts` | Versioned save, migrations, export and import |
 | `src/audio.ts` | Synthesized sound effects |
 | `src/icons.ts` | Item, ore and gem icons |
-| `src/screens/` | One file per menu (inventory, market, orders, dungeon, workshop, blacksmith) plus the shared bag grid |
+| `src/screens/` | One file per menu (mine, inventory, market, orders, dungeon, workshop, blacksmith) plus the shared bag grid |
 | `public/favicon.svg` | Logo, used as the browser-tab icon and on the start screen |
 | `VERSION` | Build number shown in the game |
 | `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
@@ -158,6 +173,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v28** – New **Mine** menu: dig your own ore and gems in a daily rock wall (40 pickaxe swings per day). Breaking rocks reveals deeper ones, which hold rarer ore; hitting a rock's target ring does double damage. Includes a smelter (2 iron → 1 steel) and a new **Steel Pickaxe** workshop upgrade. The Workshop now shows its upgrades in a 2 × 4 grid.
 - **v27** – The Trade Market shows how much of each material you own as “x10” instead of “have 10”.
 - **v26** – In the Inventory, the Weapon and Off-hand slots now sit side by side (weapon on the left) in the bottom row between the armor and jewelry columns.
 - **v25** – New armor: **Pants** and **Shoes**, with their own equipment slots. The Inventory's equipment panel now has armor on the left (Head, Chest, Pants, Shoes), jewelry on the right, and the Weapon and Off-hand at the bottom centre between them. Keys 9 and 0 now pick Pants and Shoes; horseshoes and nails are chosen from the item bar.

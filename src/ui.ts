@@ -22,7 +22,7 @@ export type Rect = { x: number; y: number; w: number; h: number };
 export const inRect = (p: Point, r: Rect) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 // Sidebar menus, in display order.
-export type Tab = "forge" | "inventory" | "market" | "orders" | "dungeon" | "workshop" | "blacksmith";
+export type Tab = "forge" | "mine" | "inventory" | "market" | "orders" | "dungeon" | "workshop" | "blacksmith";
 
 // Shared app state.
 export const app = {

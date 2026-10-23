@@ -16,6 +16,7 @@ import { dungeonClick, dungeonHover, dungeonUpdate, drawDungeon } from "./screen
 import { drawInventory, inventoryClick, inventoryHover } from "./screens/inventory";
 import { bag } from "./screens/bag";
 import { drawMarket, marketClick, marketHover } from "./screens/market";
+import { drawMine, mineClick, mineHover, mineUpdate } from "./screens/mine";
 import { drawOrders, ordersClick, ordersHover } from "./screens/orders";
 import { drawWorkshop, workshopClick, workshopHover } from "./screens/workshop";
 import {
@@ -29,6 +30,7 @@ const FRAME_MS = 1000 / FPS;
 // Sidebar menus, top to bottom.
 const TABS: { id: Tab; label: string }[] = [
   { id: "forge", label: "Forge" },
+  { id: "mine", label: "Mine" },
   { id: "inventory", label: "Inventory" },
   { id: "market", label: "Trade Market" },
   { id: "orders", label: "Orders" },
@@ -39,6 +41,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 // Each menu screen: how to draw it, react to clicks, and whether the pointer is over something clickable.
 const SCREENS: Record<Exclude<Tab, "forge">, { draw: () => void; click: (p: Point) => void; hover: (p: Point) => boolean }> = {
+  mine: { draw: drawMine, click: mineClick, hover: mineHover },
   inventory: { draw: drawInventory, click: inventoryClick, hover: inventoryHover },
   market: { draw: drawMarket, click: marketClick, hover: marketHover },
   orders: {
@@ -151,6 +154,7 @@ function update(dt: number): void {
   if (app.helpOpen) return; // everything pauses while help is open
   // The forge only runs while you're at it; a dungeon fight carries on in any menu.
   if (app.tab === "forge") forgeUpdate(dt);
+  if (app.tab === "mine") mineUpdate(dt);
   if (battle) dungeonUpdate(dt);
 }
 
@@ -307,6 +311,7 @@ function drawHelp(): void {
   line("Last, hold SPACE (or the mouse) to sharpen or polish, and let go in the green zone.");
   y += 6;
   heading("Your smithy");
+  line("Mine: dig your own ore (40 swings a day; deeper is rarer) and smelt iron into steel.");
   line("Inventory: equip gear (10 slots) and repair worn items. Trade Market: buy ore and gems, sell.");
   line("Prices change every day (after each forging round). Orders: customers pay extra for items.");
   line("Dungeon: fight with your gear for ore, gems, gold, XP and blueprints. Gear wears down.");

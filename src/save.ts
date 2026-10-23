@@ -3,8 +3,9 @@
 
 import { forgeItemFor } from "./forgeItems";
 import type { Item, ItemType, Slot } from "./items";
+import type { MineState } from "./mine";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 // Ore every new blacksmith starts with (also given to players whose save predates materials).
 const STARTER_MATERIALS = { copper: 10, iron: 15 };
@@ -34,6 +35,7 @@ export interface SaveData {
   orders: Order[];
   day: number; // a new day starts after each forging round
   demand: Partial<Record<ItemType, number>>; // today's price multipliers at the market
+  mine: MineState | null; // today's rock wall in the Mine
   muted: boolean;
 }
 
@@ -52,6 +54,7 @@ function defaults(): SaveData {
     orders: [],
     day: 1,
     demand: {},
+    mine: null,
     muted: false,
   };
 }
@@ -63,6 +66,7 @@ function migrate(data: Record<string, unknown>): SaveData {
   if (typeof d.version !== "number") d.version = 1;
   // v1 -> v2: progression, materials, orders, market and settings fields (filled from defaults below).
   // v2 -> v3: items gain metal, quality, quench/finish bonuses and durability.
+  // v3 -> v4: the Mine (today's rock wall), filled from defaults below.
   if ((d.version as number) < 3) {
     const upgrade = (item: Item & { quality?: number }) => {
       if (item.metal) return item;
