@@ -18,7 +18,7 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 | `H` / **?** button | Open or close the help panel (pauses the game) |
 
 - The strike bar has the shape of the item you are forging (a sword for now). Steer the marker into the golden zone on the blade and strike. Only hits inside the zone count: a strike outside it ("Miss!") does nothing to the blade.
-- Three hits forge a sword, which sells automatically. Swords hammered on hotter metal sell for more gold (up to 100g).
+- **Hits and heats:** bigger items need more hits. A sword takes **5 hits over 2 heats**: 3 hits on the first heat, then you must put the blade back in the forge (S or ↓), then 2 more hits. The pips under the bar show your progress, with a flame between the heats. A finished sword sells automatically; swords hammered on hotter metal sell for more gold (up to 100g).
 - **Item tiers:** every item you forge is either **Normal** or **★ Legendary**, revealed only when it's finished. The in-game help (**?** button or H) explains them.
 - **Legendary swords:** every finished sword has a chance to turn out legendary, shown as the orange ★ stat under your energy (5% for now). You only find out when the sword is done. A legendary sword sells for 5× the normal price.
 - **Energy:** you start each round with 100 energy, shown by the yellow lightning bolt under your sword count as current/maximum (e.g. 50/100). Every hammer swing costs 1 energy, whether it hits, misses or lands on cold metal. At 0 energy you can't forge any more and the round ends, even if time is left.
@@ -69,6 +69,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v16** – Items need a set number of hits spread over heat cycles. A sword now takes 5 hits over 2 heats (3 + 2), with a required reheat in between. Clicking strikes exactly where you click.
 - **v15** – Help button (**?**) in the top-right corner, also opened with H. It pauses the game and explains the controls and the item tiers (Normal and Legendary).
 - **v14** – The energy counter shows your maximum as well (e.g. 50/100) and no longer turns red when low.
 - **v13** – Fixed 1280×720 resolution (16:9) and a 60 fps frame cap.

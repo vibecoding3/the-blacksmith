@@ -23,13 +23,15 @@ const ROUND_TIME = 60; // seconds
 const BASE_MAX_ENERGY = 100; // each hammer swing, hit or miss, costs 1
 const LEGENDARY_PRICE_MULTIPLIER = 5;
 const LEGENDARY_COLOR = "#ff9f1c";
-const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
 
 // The item being forged, drawn as the strike bar. Positions along the bar run
 // 0..1; the marker and golden zone stay within the workable part of the item.
+// Bigger items need more hits, spread over one or more heats in the forge.
 interface ForgeItem {
   name: string;
+  hits: number; // hits in the golden zone needed to finish the item
+  heats: number; // heat cycles: the hits are split across this many heats
   workStart: number;
   workEnd: number;
   body: Path2D; // the part that gets hammered; the golden zone is clipped to it
@@ -49,6 +51,8 @@ const SWORD: ForgeItem = (() => {
   body.closePath();
   return {
     name: "sword",
+    hits: 5,
+    heats: 2,
     workStart: (bladeX - BAR.x) / BAR.w,
     workEnd: (tipX - BAR.x) / BAR.w,
     body,
@@ -93,7 +97,8 @@ let state: State = "menu";
 let timeLeft = ROUND_TIME;
 let gold = 0;
 let swords = 0;
-let strikes: number[] = []; // accuracy of each strike on the current sword (0..1)
+let strikes: number[] = []; // value of each hit on the current item (0..1)
+let heatCycle = 0; // which heat of the current item we are on (0-based)
 let marker = 0; // 0..1 position along the bar
 const MARKER_SPEED = 0.9; // bar-widths per second
 const held = new Set<string>(); // movement keys currently pressed
@@ -145,6 +150,19 @@ function clampToItem(pos: number): number {
   return Math.min(item.workEnd, Math.max(item.workStart, pos));
 }
 
+// Number of hits that must be done by the end of heat cycle `cycle` (0-based).
+// Hits are split as evenly as possible, earlier heats taking any extra (5 over 2 heats = 3 + 2).
+function hitsByEndOfHeat(cycle: number): number {
+  let total = 0;
+  for (let c = 0; c <= cycle; c++) total += Math.ceil((item.hits - total) / (item.heats - c));
+  return total;
+}
+
+// True when this heat's hits are done and the blade must go back in the forge.
+function needsReheat(): boolean {
+  return strikes.length >= hitsByEndOfHeat(heatCycle) && strikes.length < item.hits;
+}
+
 function startGame(): void {
   state = "playing";
   timeLeft = ROUND_TIME;
@@ -153,6 +171,7 @@ function startGame(): void {
   legendaries = 0;
   swords = 0;
   strikes = [];
+  heatCycle = 0;
   marker = (item.workStart + item.workEnd) / 2;
   sparks = [];
   temp = FORGE_TEMP;
@@ -169,6 +188,10 @@ function flash(text: string, color = "#ffe080", duration = 1): void {
 function strike(): void {
   if (inForge) return;
   if (energy <= 0) return;
+  if (needsReheat()) {
+    flash(`Heat ${heatCycle + 1} done! Reheat the blade (S)`);
+    return;
+  }
   hammerAnim = 1;
   energy--;
   if (temp < COLD_TEMP) {
@@ -198,7 +221,7 @@ function strike(): void {
     });
   }
 
-  if (strikes.length >= STRIKES_PER_SWORD) {
+  if (strikes.length >= item.hits) {
     const quality = strikes.reduce((a, b) => a + b, 0) / strikes.length;
     let price = Math.round(quality * quality * 100);
     // Quality is only revealed once the sword is finished.
@@ -221,6 +244,7 @@ function strike(): void {
     gold += price;
     swords++;
     strikes = [];
+    heatCycle = 0;
     temp = FORGE_TEMP; // a fresh blank comes out of the forge hot
   }
   newZone();
@@ -284,9 +308,15 @@ function overHelpButton(p: { x: number; y: number }): boolean {
 }
 
 canvas.addEventListener("pointerdown", (e) => {
-  if (overHelpButton(toLayout(e))) helpOpen = !helpOpen;
+  const p = toLayout(e);
+  if (overHelpButton(p)) helpOpen = !helpOpen;
   else if (helpOpen) helpOpen = false;
-  else onAction();
+  else {
+    // Strike exactly where the player clicked, even if no frame has run since the last move.
+    mouseTarget = clampToItem((p.x - BAR.x) / BAR.w);
+    if (state === "playing" && !inForge) marker = mouseTarget;
+    onAction();
+  }
 });
 
 // Mouse steering: the marker follows the pointer's position along the bar.
@@ -314,7 +344,10 @@ function update(dt: number): void {
   if (inForge) {
     // The blade stays in the fire until it is fully hot again; no steering meanwhile.
     temp = Math.min(FORGE_TEMP, temp + REHEAT_RATE * dt);
-    if (temp >= FORGE_TEMP) inForge = false;
+    if (temp >= FORGE_TEMP) {
+      inForge = false;
+      if (needsReheat()) heatCycle++; // the next heat's hits can start
+    }
   } else {
     temp = Math.max(ROOM_TEMP, temp - COOL_RATE * dt);
     const left = LEFT_KEYS.some((k) => held.has(k));
@@ -458,7 +491,7 @@ function drawHeatGauge(): void {
   drawText(`${Math.round(temp)}°C`, x + w + 8, tempY, 15, temp < COLD_TEMP ? "#6ab0ff" : "#f5e6c8", "left");
   drawText("HEAT", x + w / 2, y - 12, 16);
   if (inForge) drawText("Heating...", x + w / 2, y + h + 28, 16, "#ffb347");
-  else if (temp < COLD_TEMP) drawText("Press S!", x + w / 2, y + h + 28, 16, "#6ab0ff");
+  else if (temp < COLD_TEMP || needsReheat()) drawText("Press S!", x + w / 2, y + h + 28, 16, "#6ab0ff");
 }
 
 function drawBar(): void {
@@ -483,13 +516,37 @@ function drawBar(): void {
   ctx.fillStyle = "#fff";
   ctx.fillRect(mx - 2, BAR.y - 10, 4, BAR.h + 20);
 
-  // Strike pips
-  for (let i = 0; i < STRIKES_PER_SWORD; i++) {
+  // Hit pips, grouped by heat cycle with a small flame between heats
+  const PIP = 26;
+  const GAP = 30; // extra space between heats, holding the flame
+  const totalW = (item.hits - 1) * PIP + (item.heats - 1) * GAP;
+  let px = W / 2 - totalW / 2;
+  const py = BAR.y + 60;
+  let cycle = 0;
+  for (let i = 0; i < item.hits; i++) {
+    if (i > 0 && i === hitsByEndOfHeat(cycle)) {
+      const fx = px + (GAP - PIP) / 2; // midway between the last pip of this heat and the next
+      px += GAP;
+      // Lit once the blade has been reheated for the next heat
+      drawFlame(fx, py, cycle < heatCycle ? "#ff8a1c" : needsReheat() && cycle === heatCycle ? "#6ab0ff" : "#3a2a22");
+      cycle++;
+    }
     ctx.beginPath();
-    ctx.arc(400 - 30 + i * 30, BAR.y + 60, 8, 0, Math.PI * 2);
+    ctx.arc(px, py, 8, 0, Math.PI * 2);
     ctx.fillStyle = i < strikes.length ? "#e0a030" : "#3a2a22";
     ctx.fill();
+    px += PIP;
   }
+}
+
+function drawFlame(x: number, y: number, color: string): void {
+  ctx.beginPath();
+  ctx.moveTo(x, y - 11);
+  ctx.quadraticCurveTo(x + 9, y + 1, x + 5, y + 7);
+  ctx.quadraticCurveTo(x, y + 11, x - 5, y + 7);
+  ctx.quadraticCurveTo(x - 9, y + 1, x, y - 11);
+  ctx.fillStyle = color;
+  ctx.fill();
 }
 
 function drawVersion(): void {
@@ -568,7 +625,7 @@ function drawScreen(): void {
     drawText("Steer the marker with the mouse, A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);
-    drawText(`3 hits forge a sword. You have ${ROUND_TIME} seconds and ${maxEnergy} energy (1 per swing).`, W / 2, 435, 20);
+    drawText(`A sword takes ${SWORD.hits} hits over ${SWORD.heats} heats. You have ${ROUND_TIME}s and ${maxEnergy} energy.`, W / 2, 435, 20);
     drawText("Press SPACE or click to start", W / 2, 475, 24, "#ffb347");
     return;
   }
