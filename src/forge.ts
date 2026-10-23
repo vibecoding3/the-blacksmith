@@ -867,7 +867,7 @@ function drawSteps(): void {
 
 // ---- Item, metal and gem pickers along the top ----
 
-const PICKER = { size: 34, gap: 4, y: 10 };
+const PICKER = { size: 30, gap: 3, y: 12 };
 const PICKER_X = W / 2 - (FORGE_ITEMS.length * (PICKER.size + PICKER.gap) - PICKER.gap) / 2;
 const CHIP = { w: 82, h: 22, gap: 4, metalY: 86, gemY: 112 };
 
@@ -927,7 +927,7 @@ function drawPickers(): void {
     ctx.globalAlpha = unlocked ? 1 : 0.3;
     drawItemIcon(ctx, f.type, false, r.x + 3, r.y + 3, r.w - 6, current ? M().color : undefined, current && f.kind === "jewelry" ? GEMS[gem].color : undefined);
     ctx.globalAlpha = 1;
-    if (!unlocked) drawText(`Lv${f.level}`, r.x + r.w / 2, r.y + r.h / 2 + 4, 10, "#ffb347");
+    if (!unlocked) drawText(`Lv${f.level}`, r.x + r.w / 2, r.y + r.h / 2 + 4, 9, "#ffb347");
     else if (i < 10) drawText(`${(i + 1) % 10}`, r.x + 3, r.y + 10, 8, "#8a7a68", "left");
   });
 

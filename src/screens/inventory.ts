@@ -11,11 +11,13 @@ import { app, drawButton, drawPanel, drawText, drawTitle, inRect, input, type Po
 import { DETAILS, bag, cellHit, drawBag, drawCell, drawDetails, drawEmptyDetails, drawTooltip, hoveredBagItem } from "./bag";
 
 const SIDE_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
-// Equipment slots in two columns: armor and hands on the left, jewelry on the right.
-const slotAt = (col: number, row: number): Rect => ({ x: 84 + col * 96, y: 164 + row * 80, w: 56, h: 56 });
+// Equipment slots in three columns: armor on the left, jewelry on the right, and the
+// weapon and off-hand at the bottom of the centre column, between the two.
+const slotAt = (col: number, row: number): Rect => ({ x: 54 + col * 78, y: 164 + row * 80, w: 56, h: 56 });
 const SLOT_RECTS: Record<Slot, Rect> = {
-  head: slotAt(0, 0), chest: slotAt(0, 1), weapon: slotAt(0, 2), offhand: slotAt(0, 3),
-  necklace: slotAt(1, 0), bracelet: slotAt(1, 1), ring1: slotAt(1, 2), ring2: slotAt(1, 3),
+  head: slotAt(0, 0), chest: slotAt(0, 1), legs: slotAt(0, 2), feet: slotAt(0, 3),
+  weapon: slotAt(1, 2), offhand: slotAt(1, 3),
+  necklace: slotAt(2, 0), bracelet: slotAt(2, 1), ring1: slotAt(2, 2), ring2: slotAt(2, 3),
 };
 const EQUIP_BTN: Rect = { x: DETAILS.x + DETAILS.w - 98, y: DETAILS.y + 10, w: 88, h: 30 };
 const REPAIR_BTN: Rect = { x: DETAILS.x + DETAILS.w - 98, y: DETAILS.y + 46, w: 88, h: 30 };
@@ -84,7 +86,7 @@ export function drawInventory(): void {
   drawText("Equipment", SIDE_PANEL.x + SIDE_PANEL.w / 2, SIDE_PANEL.y + 32, 20, "#e0a030");
   for (const slot of SLOTS) {
     const r = SLOT_RECTS[slot];
-    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 14, "#b8a888");
+    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 13, "#b8a888");
     drawCell(r, save.equipped[slot], "empty");
   }
 

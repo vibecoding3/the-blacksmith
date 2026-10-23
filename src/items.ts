@@ -8,10 +8,10 @@ import { persist, save } from "./save";
 // Item types and equipment slots. New item types and slots are added here.
 export type ItemType =
   | "sword" | "dagger" | "axe" | "spear" | "greatsword" // weapons
-  | "helmet" | "shield" | "chestplate" // armor
+  | "helmet" | "shield" | "chestplate" | "pants" | "shoes" // armor
   | "ring" | "bracelet" | "necklace" // jewelry
   | "horseshoe" | "nails"; // trade goods (sell only)
-export type Slot = "head" | "chest" | "weapon" | "offhand" | "necklace" | "bracelet" | "ring1" | "ring2";
+export type Slot = "head" | "chest" | "legs" | "feet" | "weapon" | "offhand" | "necklace" | "bracelet" | "ring1" | "ring2";
 export type Tier = "normal" | "legendary";
 
 export const LEGENDARY_COLOR = "#ff9f1c";
@@ -22,16 +22,16 @@ export const MAX_DURABILITY = 100;
 // Which slots each item type can be worn in (the first free one is used); trade goods have none.
 const SLOTS_FOR_TYPE: Partial<Record<ItemType, Slot[]>> = {
   sword: ["weapon"], dagger: ["weapon"], axe: ["weapon"], spear: ["weapon"], greatsword: ["weapon"],
-  helmet: ["head"], chestplate: ["chest"], shield: ["offhand"],
+  helmet: ["head"], chestplate: ["chest"], pants: ["legs"], shoes: ["feet"], shield: ["offhand"],
   ring: ["ring1", "ring2"], bracelet: ["bracelet"], necklace: ["necklace"],
 };
 export const SLOT_LABELS: Record<Slot, string> = {
-  head: "Head", chest: "Chest", weapon: "Weapon", offhand: "Off-hand",
+  head: "Head", chest: "Chest", legs: "Pants", feet: "Shoes", weapon: "Weapon", offhand: "Off-hand",
   necklace: "Necklace", bracelet: "Bracelet", ring1: "Ring 1", ring2: "Ring 2",
 };
 const TYPE_NAMES: Record<ItemType, string> = {
   sword: "Sword", dagger: "Dagger", axe: "Axe", spear: "Spear", greatsword: "Greatsword",
-  helmet: "Helmet", shield: "Shield", chestplate: "Chestplate", ring: "Ring", bracelet: "Bracelet", necklace: "Necklace",
+  helmet: "Helmet", shield: "Shield", chestplate: "Chestplate", pants: "Pants", shoes: "Shoes", ring: "Ring", bracelet: "Bracelet", necklace: "Necklace",
   horseshoe: "Horseshoe", nails: "Nails",
 };
 
@@ -45,6 +45,8 @@ export const DESCRIPTIONS: Record<ItemType, string> = {
   helmet: "Guards the head against heavy blows.",
   shield: "Blocks attacks; held in the off-hand.",
   chestplate: "Heavy plate that protects the body.",
+  pants: "Plated pants that guard the legs.",
+  shoes: "Iron-shod boots that protect the feet.",
   ring: "A band set with a gem that lends its power.",
   bracelet: "A wrist band set with a gem.",
   necklace: "A fine chain with a gem pendant.",

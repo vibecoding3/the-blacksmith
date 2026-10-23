@@ -114,6 +114,28 @@ export function drawItemIcon(ctx: CanvasRenderingContext2D, type: ItemType, lege
       ctx.moveTo(0, -10); ctx.lineTo(0, 18); // centre ridge
       ctx.stroke();
       break;
+    case "pants":
+      ctx.fillStyle = metal;
+      ctx.fillRect(-16, -22, 32, 10); // waist
+      ctx.beginPath();
+      ctx.moveTo(-16, -12); ctx.lineTo(-2, -12); ctx.lineTo(-3, 22); ctx.lineTo(-15, 22); // left leg
+      ctx.moveTo(2, -12); ctx.lineTo(16, -12); ctx.lineTo(15, 22); ctx.lineTo(3, 22); // right leg
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = WOOD;
+      ctx.fillRect(-16, -22, 32, 4); // belt
+      break;
+    case "shoes":
+      ctx.fillStyle = metal;
+      ctx.beginPath();
+      ctx.moveTo(-18, -20); ctx.lineTo(-4, -20); ctx.lineTo(-4, 2); ctx.lineTo(12, 4);
+      ctx.quadraticCurveTo(22, 6, 22, 14); ctx.lineTo(-18, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#3a2a22"; // sole
+      ctx.fillRect(-19, 14, 42, 5);
+      break;
     case "horseshoe":
       ctx.lineWidth = 8;
       ctx.lineCap = "round";

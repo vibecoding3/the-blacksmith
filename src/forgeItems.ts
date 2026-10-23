@@ -192,6 +192,61 @@ const CHESTPLATE: ForgeItem = (() => {
   };
 })();
 
+// Pants: plated leg armor seen from the side, waist on the left and the two legs reaching right.
+const PANTS: ForgeItem = (() => {
+  const waist = 200;
+  const end = 600;
+  const top = CY - 26;
+  const bottom = CY + 26;
+  const body = new Path2D();
+  body.moveTo(waist, top);
+  body.lineTo(end, top);
+  body.lineTo(end, CY - 3);
+  body.lineTo(300, CY - 3); // gap between the legs
+  body.lineTo(300, CY + 3);
+  body.lineTo(end, CY + 3);
+  body.lineTo(end, bottom);
+  body.lineTo(waist, bottom);
+  body.closePath();
+  return {
+    type: "pants", kind: "armor", label: "Pants", note: "Armor for the legs", ore: 4, level: 6, power: 5,
+    hits: 7, heats: 2, valueMult: 1.3, coolMult: 0.9,
+    workStart: toBar(waist + 26),
+    workEnd: toBar(end - 10),
+    body,
+    drawFittings(ctx) {
+      ctx.fillStyle = WOOD; // leather belt
+      ctx.fillRect(waist - 8, top - 4, 22, bottom - top + 8);
+    },
+  };
+})();
+
+// Shoes: an armored boot lying on its side, toe to the right.
+const SHOES: ForgeItem = (() => {
+  const heel = 250;
+  const toe = 560;
+  const body = new Path2D();
+  body.moveTo(heel, CY - 34);
+  body.lineTo(335, CY - 34); // top of the ankle
+  body.lineTo(335, CY - 4);
+  body.lineTo(510, CY + 2);
+  body.quadraticCurveTo(toe, CY + 4, toe, CY + 22); // rounded toe
+  body.lineTo(toe, CY + 28);
+  body.lineTo(heel, CY + 28);
+  body.closePath();
+  return {
+    type: "shoes", kind: "armor", label: "Shoes", note: "Armor for the feet", ore: 2, level: 3, power: 3,
+    hits: 4, heats: 1, valueMult: 0.8, coolMult: 1.1,
+    workStart: toBar(heel + 8),
+    workEnd: toBar(toe - 12),
+    body,
+    drawFittings(ctx) {
+      ctx.fillStyle = "#3a2a22"; // leather sole
+      ctx.fillRect(heel - 4, CY + 28, toe - heel + 8, 7);
+    },
+  };
+})();
+
 // Horseshoe: a thick U, opening to the right.
 const HORSESHOE: ForgeItem = (() => {
   const cx = 400;
@@ -298,7 +353,7 @@ const NECKLACE: ForgeItem = (() => {
 
 // Order of the item picker (keys 1-9 and 0 pick the first ten).
 export const FORGE_ITEMS: ForgeItem[] = [
-  SWORD, DAGGER, AXE, SPEAR, GREATSWORD, HELMET, SHIELD, CHESTPLATE, HORSESHOE, NAILS, RING, BRACELET, NECKLACE,
+  SWORD, DAGGER, AXE, SPEAR, GREATSWORD, HELMET, SHIELD, CHESTPLATE, PANTS, SHOES, HORSESHOE, NAILS, RING, BRACELET, NECKLACE,
 ];
 
 export function forgeItemFor(type: ItemType): ForgeItem {

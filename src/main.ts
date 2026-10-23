@@ -307,7 +307,7 @@ function drawHelp(): void {
   line("Last, hold SPACE (or the mouse) to sharpen or polish, and let go in the green zone.");
   y += 6;
   heading("Your smithy");
-  line("Inventory: equip gear (8 slots) and repair worn items. Trade Market: buy ore and gems, sell.");
+  line("Inventory: equip gear (10 slots) and repair worn items. Trade Market: buy ore and gems, sell.");
   line("Prices change every day (after each forging round). Orders: customers pay extra for items.");
   line("Dungeon: fight with your gear for ore, gems, gold, XP and blueprints. Gear wears down.");
   line("Workshop: forge upgrades for gold. Blacksmith: perks from level-ups, save backups, sound.");

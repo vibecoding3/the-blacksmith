@@ -13,7 +13,7 @@ The menu bar on the left switches between the game's menus. Your gold and blacks
 | Menu | What it's for |
 | --- | --- |
 | **Forge** | Make items: hammer, quench, sharpen/polish. Also used for repairs. |
-| **Inventory** | Equip gear in 8 slots, and send worn gear for repair. |
+| **Inventory** | Equip gear in 10 slots, and send worn gear for repair. |
 | **Trade Market** | Buy ore and gems; sell items at today's prices. |
 | **Orders** | Customers who pay extra gold and XP for a specific item. |
 | **Dungeon** | Auto-battles with your equipped gear, for ore, gems, gold, XP and blueprints. |
@@ -54,8 +54,10 @@ A round lasts 90 seconds with 100 energy (both can be raised). Each round ends a
 | 6 | Helmet | 3 | 6 / 2 | 1.2× | Head (defense 4) | Level 4 | |
 | 7 | Shield | 4 | 7 / 2 | 1.4× | Off-hand (defense 6) | Level 5 | Holds heat well |
 | 8 | Chestplate | 6 | 9 / 3 | 2.5× | Chest (defense 9) | Level 8 | The biggest piece |
-| 9 | Horseshoe | 1 | 2 / 1 | 0.25× | Trade good | Level 1 | Quick, safe gold |
-| 0 | Nails | 1 | 1 / 1 | 0.1× | Trade good | Level 1 | One hit |
+| 9 | Pants | 4 | 7 / 2 | 1.3× | Pants (defense 5) | Level 6 | Plated leg armor |
+| 0 | Shoes | 2 | 4 / 1 | 0.8× | Shoes (defense 3) | Level 3 | Armored boots |
+| | Horseshoe | 1 | 2 / 1 | 0.25× | Trade good | Level 1 | Quick, safe gold |
+| | Nails | 1 | 1 / 1 | 0.1× | Trade good | Level 1 | One hit |
 | | Ring | 1 + gem | 2 / 1 | 0.8× | Ring (2 slots) | Level 4 | Needs silver, gold or mithril |
 | | Bracelet | 1 + gem | 3 / 1 | 1× | Bracelet | Level 5 | Needs silver, gold or mithril |
 | | Necklace | 2 + gem | 4 / 1 | 1.5× | Necklace | Level 6 | Needs silver, gold or mithril |
@@ -156,6 +158,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v25** – New armor: **Pants** and **Shoes**, with their own equipment slots. The Inventory's equipment panel now has armor on the left (Head, Chest, Pants, Shoes), jewelry on the right, and the Weapon and Off-hand at the bottom centre between them. Keys 9 and 0 now pick Pants and Shoes; horseshoes and nails are chosen from the item bar.
 - **v24** – The big update:
   - **Metals and materials:** copper, iron, steel, silver, gold and mithril, each with real working temperatures, quench windows, value and strength. Forging uses ore; buy ore and gems at the Trade Market or find them in dungeons.
   - **Jewelry:** rings, bracelets and necklaces made from fine metals and set with a ruby, sapphire or emerald.
