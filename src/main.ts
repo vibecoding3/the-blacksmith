@@ -42,6 +42,7 @@ let strikes: number[] = []; // accuracy of each strike on the current sword (0..
 let marker = 0; // 0..1 position along the bar
 const MARKER_SPEED = 0.9; // bar-widths per second
 const held = new Set<string>(); // movement keys currently pressed
+let mouseTarget: number | null = null; // bar position (0..1) under the mouse, if steering by mouse
 let zoneCenter = 0.5;
 let zoneBaseWidth = 0.18; // golden zone width when the blade is fully hot
 let temp = FORGE_TEMP; // blade temperature in °C
@@ -157,6 +158,7 @@ window.addEventListener("keydown", (e) => {
   } else if (LEFT_KEYS.includes(e.code) || RIGHT_KEYS.includes(e.code)) {
     e.preventDefault();
     held.add(e.code);
+    mouseTarget = null; // keyboard takes over from the mouse
   } else if (REHEAT_KEYS.includes(e.code)) {
     e.preventDefault();
     reheat();
@@ -165,6 +167,14 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => held.delete(e.code));
 window.addEventListener("blur", () => held.clear());
 canvas.addEventListener("pointerdown", onAction);
+
+// Mouse steering: the marker slides toward the pointer's position along the bar.
+canvas.addEventListener("pointermove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * W; // canvas may be scaled by CSS
+  mouseTarget = Math.min(1, Math.max(0, (x - BAR.x) / BAR.w));
+});
+canvas.addEventListener("pointerleave", () => (mouseTarget = null));
 
 function update(dt: number): void {
   hammerAnim = Math.max(0, hammerAnim - dt * 4);
@@ -188,7 +198,14 @@ function update(dt: number): void {
     const left = LEFT_KEYS.some((k) => held.has(k));
     const right = RIGHT_KEYS.some((k) => held.has(k));
     const move = (right ? 1 : 0) - (left ? 1 : 0);
-    marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
+    if (move !== 0) {
+      marker = Math.min(1, Math.max(0, marker + move * MARKER_SPEED * dt));
+    } else if (mouseTarget !== null) {
+      // Same top speed as the keys, so the mouse is not a shortcut.
+      const step = MARKER_SPEED * dt;
+      const diff = mouseTarget - marker;
+      marker = Math.abs(diff) <= step ? mouseTarget : marker + Math.sign(diff) * step;
+    }
   }
 
   timeLeft -= dt;
@@ -349,7 +366,7 @@ function drawScreen(): void {
   if (state === "menu") {
     if (logo.complete && logo.naturalWidth > 0) ctx.drawImage(logo, W / 2 - 45, 20, 90, 90);
     drawText("Blacksmith Simulator", W / 2, 150, 48);
-    drawText("Steer the marker with A/D or the arrow keys,", W / 2, 360, 20);
+    drawText("Steer the marker with the mouse, A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);
     drawText(`3 strikes forge a sword. You have ${ROUND_TIME} seconds.`, W / 2, 435, 20);

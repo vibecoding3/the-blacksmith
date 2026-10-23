@@ -12,6 +12,7 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 | --- | --- |
 | `A` / `←` | Move the marker left |
 | `D` / `→` | Move the marker right |
+| Mouse | Move the pointer left or right: the marker slides toward it |
 | `Space` / click | Strike the blade (also starts a new round) |
 | `S` / `↓` | Put the blade back in the forge to reheat it |
 
@@ -60,6 +61,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v6** – Steer the marker with the mouse as well as the keys. The marker slides toward the pointer at the same speed as with the keys.
 - **v5** – Added the crossed hammer-and-sword logo as the browser-tab icon and on the start screen.
 - **v4** – Realistic heat: the blade's temperature is tracked in °C (forged at 1200 °C, too cold below 800 °C) and shown next to the HEAT gauge, and the blade glows in real steel heat colours.
 - **v3** – Heating system: the blade cools over time and with each strike, cooler metal has a smaller golden zone and earns less, and you reheat it in the forge with S or ↓.
