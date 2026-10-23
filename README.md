@@ -16,9 +16,10 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 - Steer the marker into the golden zone and strike. The closer you are to the bright centre line, the better the strike.
 - Three strikes forge a sword, which sells automatically. More accurate strikes sell for more gold (up to 100g).
 - The golden zone gets smaller with every sword you finish.
-- **Heat:** the blade cools over time and with every strike, shown by the HEAT gauge on the right.
+- **Heat:** the blade's temperature in °C is shown on the HEAT gauge on the right. The blade cools by about 30 °C per second in the air and 60 °C per strike.
+  - Temperatures follow real steel forging: the forge brings the blade to a **yellow 1200 °C**, and it glows orange, then cherry red as it cools. The blade and gauge change colour to match.
   - Cooler metal is harder to work: the golden zone shrinks as the blade cools, and strikes are worth less.
-  - Below the blue line the metal is too cold to shape, and strikes do nothing.
+  - Below **800 °C** (cherry red, the blue line) the steel is too cold to shape, and strikes do nothing. Real smiths stop hammering here because the steel can crack.
   - Press `S` or `↓` to reheat. The blade stays in the forge until it is fully hot, and you can't move or strike meanwhile. The colder it is, the longer this takes.
   - Each new sword starts fully hot.
 - Your best score is saved in your browser.
@@ -56,6 +57,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v4** – Realistic heat: the blade's temperature is tracked in °C (forged at 1200 °C, too cold below 800 °C) and shown next to the HEAT gauge, and the blade glows in real steel heat colours.
 - **v3** – Heating system: the blade cools over time and with each strike, cooler metal has a smaller golden zone and earns less, and you reheat it in the forge with S or ↓.
 - **v2** – You steer the marker yourself with A/D or the arrow keys. The version number is shown in-game. Added this README.
 - **v1** – First release: the marker sweeps across the bar automatically and you strike when it is in the golden zone.

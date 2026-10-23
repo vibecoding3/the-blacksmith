@@ -10,13 +10,29 @@ const H = canvas.height;
 const ROUND_TIME = 60; // seconds
 const STRIKES_PER_SWORD = 3;
 const BAR = { x: 150, y: 400, w: 500, h: 28 };
-const GAUGE = { x: 720, y: 140, w: 24, h: 180 };
+const GAUGE = { x: 700, y: 140, w: 24, h: 180 };
 
-// Heat (0..1): the blade cools over time and with every strike.
-const COOL_RATE = 0.06; // heat lost per second
-const STRIKE_COOL = 0.12; // heat lost per strike
-const REHEAT_RATE = 1.0; // heat gained per second in the forge
-const COLD_HEAT = 0.25; // below this the metal is too cold to shape
+// Blade temperature in °C, based on common steel forging practice:
+// yellow (~1200 °C) is the ideal forging heat, and below cherry red (~800 °C)
+// the steel is too stiff to shape and may crack.
+const FORGE_TEMP = 1200; // the forge heats the blade up to here
+const COLD_TEMP = 800; // too cold to forge below this
+const GAUGE_MIN_TEMP = 500; // below this steel no longer glows; bottom of the gauge
+const ROOM_TEMP = 20;
+const COOL_RATE = 30; // °C lost per second in the air
+const STRIKE_COOL = 60; // °C lost per strike (the anvil and hammer draw heat out)
+const REHEAT_RATE = 400; // °C gained per second in the forge
+
+// Steel glow colours by temperature (°C → RGB).
+const GLOW_COLORS: [number, [number, number, number]][] = [
+  [500, [120, 120, 128]], // no visible glow
+  [650, [110, 30, 20]], // dull red
+  [800, [190, 30, 25]], // cherry red
+  [900, [230, 70, 30]], // bright cherry / orange-red
+  [1000, [255, 120, 30]], // orange
+  [1100, [255, 175, 45]], // orange-yellow
+  [1200, [255, 225, 100]], // yellow
+];
 
 let state: State = "menu";
 let timeLeft = ROUND_TIME;
@@ -28,7 +44,7 @@ const MARKER_SPEED = 0.9; // bar-widths per second
 const held = new Set<string>(); // movement keys currently pressed
 let zoneCenter = 0.5;
 let zoneBaseWidth = 0.18; // golden zone width when the blade is fully hot
-let heat = 1;
+let temp = FORGE_TEMP; // blade temperature in °C
 let inForge = false;
 let message = "";
 let messageTimer = 0;
@@ -48,9 +64,14 @@ function newZone(): void {
   zoneCenter = zoneBaseWidth / 2 + Math.random() * (1 - zoneBaseWidth);
 }
 
+// How workable the blade is: 1 at full forge heat, 0 at the cold limit.
+function warmth(): number {
+  return Math.min(1, Math.max(0, (temp - COLD_TEMP) / (FORGE_TEMP - COLD_TEMP)));
+}
+
 // Hot metal is easier to work: the golden zone shrinks as the blade cools.
 function zoneWidth(): number {
-  return zoneBaseWidth * (0.4 + 0.6 * heat);
+  return zoneBaseWidth * (0.4 + 0.6 * warmth());
 }
 
 function startGame(): void {
@@ -61,7 +82,7 @@ function startGame(): void {
   strikes = [];
   marker = 0.5;
   sparks = [];
-  heat = 1;
+  temp = FORGE_TEMP;
   inForge = false;
   newZone();
 }
@@ -74,7 +95,7 @@ function flash(text: string): void {
 function strike(): void {
   if (inForge) return;
   hammerAnim = 1;
-  if (heat < COLD_HEAT) {
+  if (temp < COLD_TEMP) {
     flash("Too cold! Reheat (S)");
     return;
   }
@@ -83,10 +104,9 @@ function strike(): void {
   const half = zoneWidth() / 2;
   const aim = dist <= half ? 1 - (dist / half) * 0.5 : Math.max(0, 0.5 - (dist - half) * 3);
   // Strikes on cooler metal are worth less (down to 60% just above the cold limit).
-  const warmth = (heat - COLD_HEAT) / (1 - COLD_HEAT);
-  const accuracy = aim * (0.6 + 0.4 * warmth);
+  const accuracy = aim * (0.6 + 0.4 * warmth());
   strikes.push(accuracy);
-  heat = Math.max(0, heat - STRIKE_COOL);
+  temp = Math.max(ROOM_TEMP, temp - STRIKE_COOL);
 
   if (accuracy >= 0.9) flash("PERFECT!");
   else if (accuracy >= 0.5) flash("Good");
@@ -109,7 +129,7 @@ function strike(): void {
     gold += price;
     swords++;
     strikes = [];
-    heat = 1; // a fresh blank comes out of the forge hot
+    temp = FORGE_TEMP; // a fresh blank comes out of the forge hot
     flash(`Sword sold for ${price}g!`);
   }
   newZone();
@@ -125,7 +145,7 @@ const RIGHT_KEYS = ["KeyD", "ArrowRight"];
 const REHEAT_KEYS = ["KeyS", "ArrowDown"];
 
 function reheat(): void {
-  if (state === "playing" && !inForge && heat < 1) inForge = true;
+  if (state === "playing" && !inForge && temp < FORGE_TEMP) inForge = true;
 }
 
 window.addEventListener("keydown", (e) => {
@@ -159,10 +179,10 @@ function update(dt: number): void {
 
   if (inForge) {
     // The blade stays in the fire until it is fully hot again; no steering meanwhile.
-    heat = Math.min(1, heat + REHEAT_RATE * dt);
-    if (heat >= 1) inForge = false;
+    temp = Math.min(FORGE_TEMP, temp + REHEAT_RATE * dt);
+    if (temp >= FORGE_TEMP) inForge = false;
   } else {
-    heat = Math.max(0, heat - COOL_RATE * dt);
+    temp = Math.max(ROOM_TEMP, temp - COOL_RATE * dt);
     const left = LEFT_KEYS.some((k) => held.has(k));
     const right = RIGHT_KEYS.some((k) => held.has(k));
     const move = (right ? 1 : 0) - (left ? 1 : 0);
@@ -187,16 +207,19 @@ function drawText(text: string, x: number, y: number, size: number, color = "#f5
   ctx.fillText(text, x, y);
 }
 
-// Blade colour runs from dull grey (cold) to bright orange-yellow (hot).
-function heatColor(h: number): string {
-  const r = Math.round(120 + 135 * h);
-  const g = Math.round(120 + 70 * h);
-  const b = Math.round(130 - 100 * h);
+// Glow colour of steel at a given temperature, interpolated from GLOW_COLORS.
+function heatColor(t: number): string {
+  let i = 1;
+  while (i < GLOW_COLORS.length - 1 && t > GLOW_COLORS[i][0]) i++;
+  const [t0, c0] = GLOW_COLORS[i - 1];
+  const [t1, c1] = GLOW_COLORS[i];
+  const f = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+  const [r, g, b] = c0.map((c, k) => Math.round(c + (c1[k] - c) * f));
   return `rgb(${r},${g},${b})`;
 }
 
 function drawBlade(x: number, y: number): void {
-  ctx.fillStyle = heatColor(heat);
+  ctx.fillStyle = heatColor(temp);
   ctx.fillRect(x, y, 180, 10);
   ctx.beginPath(); ctx.moveTo(x + 180, y); ctx.lineTo(x + 205, y + 5); ctx.lineTo(x + 180, y + 10); ctx.fill();
   ctx.fillStyle = "#5a3a22";
@@ -263,16 +286,22 @@ function drawHeatGauge(): void {
   ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
   ctx.fillStyle = "#2a1c18";
   ctx.fillRect(x, y, w, h);
-  const fill = heat * h;
-  ctx.fillStyle = heatColor(heat);
+  // The gauge spans GAUGE_MIN_TEMP (bottom) to FORGE_TEMP (top).
+  const level = (t: number) => Math.min(1, Math.max(0, (t - GAUGE_MIN_TEMP) / (FORGE_TEMP - GAUGE_MIN_TEMP)));
+  const fill = level(temp) * h;
+  ctx.fillStyle = heatColor(temp);
   ctx.fillRect(x, y + h - fill, w, fill);
-  // Cold limit line
-  const coldY = y + h - COLD_HEAT * h;
+  // Cold limit line, labelled on the left
+  const coldY = y + h - level(COLD_TEMP) * h;
   ctx.fillStyle = "#6ab0ff";
   ctx.fillRect(x - 6, coldY - 1, w + 12, 2);
+  drawText(`${COLD_TEMP}°`, x - 10, coldY + 5, 13, "#6ab0ff", "right");
+  // Current temperature, to the right of the bar at the fill level
+  const tempY = Math.min(y + h, Math.max(y + 10, y + h - fill + 6));
+  drawText(`${Math.round(temp)}°C`, x + w + 8, tempY, 15, temp < COLD_TEMP ? "#6ab0ff" : "#f5e6c8", "left");
   drawText("HEAT", x + w / 2, y - 12, 16);
   if (inForge) drawText("Heating...", x + w / 2, y + h + 28, 16, "#ffb347");
-  else if (heat < COLD_HEAT) drawText("Press S!", x + w / 2, y + h + 28, 16, "#6ab0ff");
+  else if (temp < COLD_TEMP) drawText("Press S!", x + w / 2, y + h + 28, 16, "#6ab0ff");
 }
 
 function drawBar(): void {
