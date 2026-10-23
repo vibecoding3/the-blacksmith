@@ -1,0 +1,54 @@
+# Blacksmith Simulator
+
+A small browser game written in TypeScript. Forge as many swords as you can in 60 seconds by striking the hot blade at just the right spot.
+
+**Play it here:** https://vibecoding3.github.io/the-blacksmith/
+
+## How to play
+
+| Key | Action |
+| --- | --- |
+| `A` / `←` | Move the marker left |
+| `D` / `→` | Move the marker right |
+| `Space` / click | Strike the blade (also starts a new round) |
+
+- Steer the marker into the golden zone and strike. The closer you are to the bright centre line, the better the strike.
+- Three strikes forge a sword, which sells automatically. More accurate strikes sell for more gold (up to 100g).
+- The golden zone gets smaller with every sword you finish.
+- Your best score is saved in your browser.
+
+## Running locally
+
+Requires [Node.js](https://nodejs.org/) 22 or newer.
+
+```sh
+npm install
+npm run dev      # start a dev server at http://localhost:5173/the-blacksmith/
+npm run build    # type-check and build a static site into dist/
+npm run preview  # serve the built dist/ folder
+```
+
+## Project layout
+
+| Path | Purpose |
+| --- | --- |
+| `index.html` | Page and game canvas |
+| `src/main.ts` | All game code: state, input, update loop and drawing |
+| `VERSION` | Build number shown in the game |
+| `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
+| `.github/workflows/deploy.yml` | Builds and publishes the game to GitHub Pages |
+
+## Versioning
+
+The build number is a single integer stored in the `VERSION` file. It goes up by one for every release (1, 2, 3, …). At build time it is shown in the bottom-right corner of the game as `vN`, so you can check which build you are playing.
+
+To release a new version, increase the number in `VERSION`, then commit and push.
+
+## Deployment
+
+Every push to `main` runs the GitHub Actions workflow, which builds the game and publishes it to GitHub Pages. If the page still shows an old version number after a deploy finishes, refresh the page.
+
+## Changelog
+
+- **v2** – You steer the marker yourself with A/D or the arrow keys. The version number is shown in-game. Added this README.
+- **v1** – First release: the marker sweeps across the bar automatically and you strike when it is in the golden zone.

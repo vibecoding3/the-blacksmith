@@ -217,8 +217,20 @@ function drawBar(): void {
   }
 }
 
+function drawVersion(): void {
+  ctx.font = "14px Georgia, serif";
+  ctx.textAlign = "right";
+  ctx.fillStyle = "rgba(245,230,200,0.5)";
+  ctx.fillText(`v${__APP_VERSION__}`, W - 10, H - 10);
+}
+
 function render(): void {
   drawForge();
+  drawScreen();
+  drawVersion();
+}
+
+function drawScreen(): void {
 
   if (state === "menu") {
     drawText("Blacksmith Simulator", W / 2, 110, 48);
