@@ -3,7 +3,7 @@
 import { BAR, FORGE_ITEMS, type ForgeItem } from "./forgeItems";
 import { drawItemIcon } from "./icons";
 import {
-  INVENTORY_SIZE, LEGENDARY_COLOR, SLOT_FOR_TYPE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory,
+  DESCRIPTIONS, INVENTORY_SIZE, LEGENDARY_COLOR, SLOT_FOR_TYPE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory,
   itemName, sell, sellAll, unequip, type Item, type Slot, type Tier,
 } from "./items";
 
@@ -841,6 +841,9 @@ function drawInventory(): void {
   const selected = drawDetails();
   if (selected) drawButton(ACTION_BTN, equippedSlotOf(selected.id) ? "Unequip" : "Equip", canEquipOrUnequip(selected.id));
   else drawEmptyDetails("Select an item to equip it.", "To sell items, visit the Trade Market.");
+
+  const slot = (Object.keys(SLOT_RECTS) as Slot[]).find((s) => inRect(pointer, SLOT_RECTS[s]));
+  drawTooltip(slot ? inventory.equipped[slot] : hoveredBagItem());
 }
 
 function drawBag(): void {
@@ -869,6 +872,51 @@ function drawDetails(): Item | undefined {
 function drawEmptyDetails(line1: string, line2: string): void {
   drawText(line1, DETAILS.x + 16, DETAILS.y + 36, 16, "#b8a888", "left");
   drawText(line2, DETAILS.x + 16, DETAILS.y + 60, 14, "#8a7a68", "left");
+}
+
+function hoveredBagItem(): Item | undefined {
+  const i = cellHit(pointer);
+  return i >= 0 ? inventory.items[i] : undefined;
+}
+
+// A small box next to the pointer with the item's name and description.
+// Item stats (attack, defence, ...) will be added here as extra lines once they exist.
+function drawTooltip(it: Item | undefined): void {
+  if (!it || helpOpen) return;
+  const legendary = it.tier === "legendary";
+  const slot = SLOT_FOR_TYPE[it.type];
+  const lines: { text: string; size: number; color: string }[] = [
+    { text: itemName(it), size: 16, color: legendary ? LEGENDARY_COLOR : "#f5e6c8" },
+    { text: `${legendary ? "★ Legendary" : "Normal"} · ${slot ? SLOT_LABELS[slot] : "Trade good"}`, size: 12, color: "#b8a888" },
+    { text: DESCRIPTIONS[it.type], size: 13, color: "#f5e6c8" },
+    { text: `Worth ${it.value}g`, size: 13, color: "#ffd700" },
+  ];
+  const pad = 10;
+  const lineGap = 6;
+  const w = pad * 2 + Math.max(...lines.map((l) => {
+    ctx.font = `bold ${l.size}px Georgia, serif`;
+    return ctx.measureText(l.text).width;
+  }));
+  const h = pad * 2 + lines.reduce((sum, l) => sum + l.size + lineGap, -lineGap);
+  // Below-right of the pointer, flipped to stay inside the layout area
+  let x = pointer.x + 14;
+  let y = pointer.y + 18;
+  if (x + w > W - 4) x = pointer.x - 14 - w;
+  if (y + h > H - 4) y = pointer.y - 10 - h;
+
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 6);
+  ctx.fillStyle = "rgba(20,13,11,0.96)";
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = legendary ? LEGENDARY_COLOR : "#e0a030";
+  ctx.stroke();
+  let ty = y + pad;
+  for (const l of lines) {
+    ty += l.size;
+    drawText(l.text, x + pad, ty - 2, l.size, l.color, "left");
+    ty += lineGap;
+  }
 }
 
 function drawMarket(): void {
@@ -909,6 +957,7 @@ function drawMarket(): void {
   const selected = drawDetails();
   if (selected) drawButton(ACTION_BTN, `Sell ${selected.value}g`);
   else drawEmptyDetails("Select an item to sell it.", "Legendary items are worth 5\u00d7 a normal one.");
+  drawTooltip(hoveredBagItem());
 }
 
 function drawHelp(): void {

@@ -53,6 +53,20 @@ function persist(): void {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(inventory)); } catch { /* ignore */ }
 }
 
+// Flavour text shown in item tooltips.
+export const DESCRIPTIONS: Record<ItemType, string> = {
+  sword: "A trusty steel blade, balanced for any fight.",
+  dagger: "A light, quick blade for close quarters.",
+  axe: "A heavy head that bites deep.",
+  spear: "Long reach keeps enemies at bay.",
+  greatsword: "A massive blade that needs both hands.",
+  helmet: "Guards the head against heavy blows.",
+  shield: "Blocks attacks; held in the off-hand.",
+  chestplate: "Heavy plate that protects the body.",
+  horseshoe: "Sold to stables and farriers.",
+  nails: "A bundle of nails for builders.",
+};
+
 export function itemName(item: Item): string {
   const base = TYPE_NAMES[item.type];
   return item.tier === "legendary" ? `Legendary ${base}` : `Steel ${base}`;
