@@ -103,18 +103,17 @@ function strike(): void {
     return;
   }
 
-  const dist = Math.abs(marker - zoneCenter);
-  const half = zoneWidth() / 2;
-  // Anywhere inside the golden zone is a full hit; outside it the strike weakens with distance.
-  const aim = dist <= half ? 1 : Math.max(0, 0.5 - (dist - half) * 3);
+  // Only strikes inside the golden zone shape the blade; a miss does nothing.
+  if (Math.abs(marker - zoneCenter) > zoneWidth() / 2) {
+    flash("Miss!");
+    return;
+  }
+
   // Strikes on cooler metal are worth less (down to 60% just above the cold limit).
-  const accuracy = aim * (0.6 + 0.4 * warmth());
+  const accuracy = 0.6 + 0.4 * warmth();
   strikes.push(accuracy);
   temp = Math.max(ROOM_TEMP, temp - STRIKE_COOL);
-
-  if (aim === 1) flash("Hit!");
-  else if (aim > 0) flash("Sloppy...");
-  else flash("Miss!");
+  flash("Hit!");
 
   const n = Math.round(accuracy * 25) + 3;
   for (let i = 0; i < n; i++) {
