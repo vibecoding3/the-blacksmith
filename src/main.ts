@@ -1,17 +1,18 @@
 // Blacksmith Simulator — steer the marker into the sweet spot and strike the hot blade.
 
 import {
-  INVENTORY_SIZE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory, itemName, sell, unequip,
+  INVENTORY_SIZE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory, itemName, sell, sellAll, unequip,
   type Item, type ItemType, type Slot, type Tier,
 } from "./items";
 
 type State = "menu" | "playing" | "over";
 
 // Sidebar tabs. More menus will be added here later.
-type Tab = "forge" | "inventory";
+type Tab = "forge" | "inventory" | "market";
 const TABS: { id: Tab; label: string }[] = [
   { id: "forge", label: "Forge" },
   { id: "inventory", label: "Inventory" },
+  { id: "market", label: "Trade Market" },
 ];
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
@@ -131,7 +132,7 @@ let maxEnergy = BASE_MAX_ENERGY; // can be raised later (e.g. by upgrades)
 let energy = maxEnergy;
 let helpOpen = false; // the game is paused while the help panel is shown
 let selectedId: number | null = null; // item selected on the inventory screen
-let inventoryNotice = ""; // short feedback on the inventory screen (e.g. "Bag is full")
+let notice = ""; // short feedback on the inventory and market screens (e.g. "Bag is full")
 let pointer = { x: -1, y: -1 }; // pointer position in layout units, for hover effects
 let pointerScreen = { x: -1, y: -1 }; // the same in screen pixels
 let legendaryChance = 0.05; // chance (0..1) that a finished sword turns out legendary
@@ -331,7 +332,8 @@ function switchTab(next: Tab): void {
   tab = next;
   held.clear();
   mouseTarget = null;
-  inventoryNotice = "";
+  notice = "";
+  selectedId = null;
 }
 
 canvas.addEventListener("pointerdown", (e) => {
@@ -355,6 +357,10 @@ canvas.addEventListener("pointerdown", (e) => {
     inventoryClick(p);
     return;
   }
+  if (tab === "market") {
+    marketClick(p);
+    return;
+  }
   // Strike exactly where the player clicked, even if no frame has run since the last move.
   mouseTarget = clampToItem((p.x - BAR.x) / BAR.w);
   if (state === "playing" && !inForge) marker = mouseTarget;
@@ -365,7 +371,8 @@ canvas.addEventListener("pointerdown", (e) => {
 canvas.addEventListener("pointermove", (e) => {
   pointerScreen = toScreen(e);
   pointer = toLayout(pointerScreen);
-  const clickable = sidebarHit(pointerScreen) !== null || (tab === "inventory" && !helpOpen && inventoryHit(pointer) !== null);
+  const screenHit = tab === "inventory" ? inventoryHit(pointer) : tab === "market" ? marketHit(pointer) : null;
+  const clickable = sidebarHit(pointerScreen) !== null || (!helpOpen && screenHit !== null);
   canvas.style.cursor = clickable ? "pointer" : "";
   mouseTarget = tab === "forge" && pointerScreen.x >= SIDEBAR_W ? clampToItem((pointer.x - BAR.x) / BAR.w) : null;
 });
@@ -607,8 +614,10 @@ function render(): void {
   if (tab === "forge") {
     drawForge();
     drawScreen();
-  } else {
+  } else if (tab === "inventory") {
     drawInventory();
+  } else {
+    drawMarket();
   }
   if (helpOpen) drawHelp();
   // The sidebar goes on top of any dimming, so its buttons always stay usable.
@@ -637,7 +646,7 @@ function drawSidebarButton(r: Rect, label: string, active: boolean): void {
   ctx.lineWidth = 2;
   ctx.strokeStyle = active ? "#e0a030" : "#5a4030";
   ctx.stroke();
-  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 7, 20, active ? "#2b1d18" : "#f5e6c8");
+  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 6, 18, active ? "#2b1d18" : "#f5e6c8");
 }
 
 function drawSidebar(): void {
@@ -660,14 +669,15 @@ function drawSidebar(): void {
   drawSidebarButton(HELP_RECT, "? Help", helpOpen);
 }
 
-// ---- Inventory screen (layout units) ----
+// ---- Inventory and Trade Market screens (layout units) ----
+// Both show the bag as a grid on the right, a panel on the left and item details below.
 
 const GRID = { x: 310, y: 95, cell: 64, gap: 10, cols: 6 };
-const EQUIP_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
+const SIDE_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
 const SLOT_RECTS: Record<Slot, Rect> = { weapon: { x: 190, y: 235, w: 64, h: 64 } };
 const DETAILS: Rect = { x: 310, y: 395, w: 434, h: 85 };
-const EQUIP_BTN: Rect = { x: 552, y: 427, w: 86, h: 34 };
-const SELL_BTN: Rect = { x: 646, y: 427, w: 88, h: 34 };
+const ACTION_BTN: Rect = { x: 646, y: 427, w: 88, h: 34 }; // Equip/Unequip in the inventory, Sell in the market
+const SELL_ALL_BTN: Rect = { x: 60, y: 420, w: 200, h: 40 };
 
 function cellRect(i: number): Rect {
   const col = i % GRID.cols;
@@ -675,38 +685,68 @@ function cellRect(i: number): Rect {
   return { x: GRID.x + col * (GRID.cell + GRID.gap), y: GRID.y + row * (GRID.cell + GRID.gap), w: GRID.cell, h: GRID.cell };
 }
 
-type InventoryHit = { kind: "cell"; index: number } | { kind: "slot"; slot: Slot } | { kind: "equip" } | { kind: "sell" };
+function cellHit(p: Point): number {
+  for (let i = 0; i < INVENTORY_SIZE; i++) if (inRect(p, cellRect(i))) return i;
+  return -1;
+}
+
+type InventoryHit = { kind: "cell"; index: number } | { kind: "slot"; slot: Slot } | { kind: "equip" };
 
 function inventoryHit(p: Point): InventoryHit | null {
-  for (let i = 0; i < INVENTORY_SIZE; i++) if (inRect(p, cellRect(i))) return { kind: "cell", index: i };
+  const index = cellHit(p);
+  if (index >= 0) return { kind: "cell", index };
   for (const slot of Object.keys(SLOT_RECTS) as Slot[]) if (inRect(p, SLOT_RECTS[slot])) return { kind: "slot", slot };
-  if (selectedId !== null && findItem(selectedId)) {
-    if (inRect(p, EQUIP_BTN)) return { kind: "equip" };
-    if (inRect(p, SELL_BTN)) return { kind: "sell" };
-  }
+  if (selectedId !== null && findItem(selectedId) && inRect(p, ACTION_BTN)) return { kind: "equip" };
   return null;
 }
 
 function inventoryClick(p: Point): void {
   const hit = inventoryHit(p);
-  inventoryNotice = "";
+  notice = "";
   if (!hit) {
     selectedId = null;
   } else if (hit.kind === "cell") {
     selectedId = inventory.items[hit.index]?.id ?? null;
   } else if (hit.kind === "slot") {
     selectedId = inventory.equipped[hit.slot]?.id ?? null;
-  } else if (hit.kind === "equip" && selectedId !== null) {
+  } else if (selectedId !== null) {
     const slot = equippedSlotOf(selectedId);
     if (slot) {
-      if (!unequip(slot)) inventoryNotice = "Your bag is full: sell something first.";
+      if (!unequip(slot)) notice = "Your bag is full: sell something at the Trade Market first.";
     } else {
       equip(selectedId);
     }
+  }
+}
+
+const isNormal = (i: Item) => i.tier === "normal";
+
+type MarketHit = { kind: "cell"; index: number } | { kind: "sell" } | { kind: "sellAll" };
+
+// The market only deals in bag items; equipped items must be unequipped first.
+function marketHit(p: Point): MarketHit | null {
+  const index = cellHit(p);
+  if (index >= 0) return { kind: "cell", index };
+  if (selectedId !== null && inventory.items.some((i) => i.id === selectedId) && inRect(p, ACTION_BTN)) return { kind: "sell" };
+  if (inventory.items.some(isNormal) && inRect(p, SELL_ALL_BTN)) return { kind: "sellAll" };
+  return null;
+}
+
+function marketClick(p: Point): void {
+  const hit = marketHit(p);
+  notice = "";
+  if (!hit) {
+    selectedId = null;
+  } else if (hit.kind === "cell") {
+    selectedId = inventory.items[hit.index]?.id ?? null;
   } else if (hit.kind === "sell" && selectedId !== null) {
     const item = findItem(selectedId);
     sell(selectedId);
-    if (item) inventoryNotice = `Sold ${itemName(item)} for ${item.value}g.`;
+    if (item) notice = `Sold ${itemName(item)} for ${item.value}g.`;
+    selectedId = null;
+  } else if (hit.kind === "sellAll") {
+    const { count, total } = sellAll(isNormal);
+    notice = `Sold ${count} normal item${count === 1 ? "" : "s"} for ${total}g.`;
     selectedId = null;
   }
 }
@@ -752,12 +792,12 @@ function drawCell(r: Rect, item: Item | undefined, label?: string): void {
   else if (label) drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 4, 11, "#5a4030");
 }
 
-function drawButton(r: Rect, label: string): void {
+function drawButton(r: Rect, label: string, enabled = true): void {
   ctx.beginPath();
   ctx.roundRect(r.x, r.y, r.w, r.h, 6);
-  ctx.fillStyle = inRect(pointer, r) ? "#ffb347" : "#e0a030";
+  ctx.fillStyle = !enabled ? "#3a2a22" : inRect(pointer, r) ? "#ffb347" : "#e0a030";
   ctx.fill();
-  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 6, 16, "#2b1d18");
+  drawText(label, r.x + r.w / 2, r.y + r.h / 2 + 6, 16, enabled ? "#2b1d18" : "#8a7a68");
 }
 
 function drawPanel(r: Rect): void {
@@ -774,8 +814,8 @@ function drawInventory(): void {
   drawText("Inventory", 40, 60, 34, "#f5e6c8", "left");
 
   // Equipment: the blacksmith with an equipment slot per item kind
-  drawPanel(EQUIP_PANEL);
-  drawText("Equipment", EQUIP_PANEL.x + EQUIP_PANEL.w / 2, EQUIP_PANEL.y + 32, 20, "#e0a030");
+  drawPanel(SIDE_PANEL);
+  drawText("Equipment", SIDE_PANEL.x + SIDE_PANEL.w / 2, SIDE_PANEL.y + 32, 20, "#e0a030");
   ctx.fillStyle = "#5a4a44";
   ctx.beginPath();
   ctx.arc(120, 175, 22, 0, Math.PI * 2); // head
@@ -795,26 +835,76 @@ function drawInventory(): void {
   const weapon = inventory.equipped.weapon;
   if (weapon) drawItemIcon(weapon, 128, 250, 60); // held in the right hand
 
-  // Bag
+  drawBag();
+  const selected = drawDetails();
+  if (selected) drawButton(ACTION_BTN, equippedSlotOf(selected.id) ? "Unequip" : "Equip");
+  else drawEmptyDetails("Select an item to equip it.", "To sell items, visit the Trade Market.");
+}
+
+function drawBag(): void {
   drawText(`Items ${inventory.items.length}/${INVENTORY_SIZE}`, GRID.x, GRID.y - 14, 18, "#e0a030", "left");
   for (let i = 0; i < INVENTORY_SIZE; i++) drawCell(cellRect(i), inventory.items[i]);
   if (inventory.items.length === 0) {
     drawText("No items yet. Forge some swords!", GRID.x + 217, GRID.y + 145, 18, "#b8a888");
   }
+}
 
-  // Details of the selected item
+// Draws the details panel for the selected item (if any) plus any notice; returns that item.
+function drawDetails(): Item | undefined {
   drawPanel(DETAILS);
+  if (notice) drawText(notice, DETAILS.x + DETAILS.w / 2, DETAILS.y + DETAILS.h + 16, 14, "#ffb347");
   const selected = selectedId !== null ? findItem(selectedId) : undefined;
   if (selected) {
     const legendary = selected.tier === "legendary";
     drawText(itemName(selected), DETAILS.x + 16, DETAILS.y + 30, 20, legendary ? LEGENDARY_COLOR : "#f5e6c8", "left");
     drawText(`${legendary ? "\u2605 Legendary" : "Normal"} \u00b7 worth ${selected.value}g`, DETAILS.x + 16, DETAILS.y + 56, 15, "#b8a888", "left");
-    drawButton(EQUIP_BTN, equippedSlotOf(selected.id) ? "Unequip" : "Equip");
-    drawButton(SELL_BTN, `Sell ${selected.value}g`);
-  } else {
-    drawText("Select an item to equip or sell it.", DETAILS.x + 16, DETAILS.y + 48, 16, "#b8a888", "left");
   }
-  if (inventoryNotice) drawText(inventoryNotice, DETAILS.x + DETAILS.w / 2, DETAILS.y + DETAILS.h + 16, 14, "#ffb347");
+  return selected;
+}
+
+function drawEmptyDetails(line1: string, line2: string): void {
+  drawText(line1, DETAILS.x + 16, DETAILS.y + 36, 16, "#b8a888", "left");
+  drawText(line2, DETAILS.x + 16, DETAILS.y + 60, 14, "#8a7a68", "left");
+}
+
+function drawMarket(): void {
+  drawText("Trade Market", 40, 60, 34, "#f5e6c8", "left");
+
+  // Merchant's stall with a summary of what the bag is worth
+  drawPanel(SIDE_PANEL);
+  drawText("Merchant", SIDE_PANEL.x + SIDE_PANEL.w / 2, SIDE_PANEL.y + 32, 20, "#e0a030");
+  const stripes = 8;
+  const awningW = 180;
+  const ax = SIDE_PANEL.x + (SIDE_PANEL.w - awningW) / 2;
+  for (let i = 0; i < stripes; i++) {
+    ctx.fillStyle = i % 2 ? "#f5e6c8" : "#a8322a";
+    ctx.fillRect(ax + (i * awningW) / stripes, 150, awningW / stripes, 26);
+  }
+  ctx.fillStyle = "#6b4423";
+  ctx.fillRect(ax + 6, 176, 8, 70); // posts
+  ctx.fillRect(ax + awningW - 14, 176, 8, 70);
+  ctx.fillStyle = "#5a4a44"; // merchant behind the counter
+  ctx.beginPath();
+  ctx.arc(SIDE_PANEL.x + SIDE_PANEL.w / 2, 205, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(SIDE_PANEL.x + SIDE_PANEL.w / 2 - 20, 222, 40, 30);
+  ctx.fillStyle = "#8a5a32"; // counter
+  ctx.fillRect(ax - 4, 240, awningW + 8, 30);
+
+  const normals = inventory.items.filter(isNormal);
+  const bagValue = inventory.items.reduce((sum, i) => sum + i.value, 0);
+  const normalValue = normals.reduce((sum, i) => sum + i.value, 0);
+  const left = SIDE_PANEL.x + 20;
+  drawText(`For sale: ${inventory.items.length} item${inventory.items.length === 1 ? "" : "s"}`, left, 310, 16, "#f5e6c8", "left");
+  drawText(`Total value: ${bagValue}g`, left, 336, 16, "#ffd700", "left");
+  drawText("Equipped items can't be sold.", left, 372, 13, "#8a7a68", "left");
+  drawText("Unequip them in the Inventory.", left, 390, 13, "#8a7a68", "left");
+  drawButton(SELL_ALL_BTN, normals.length ? `Sell all normal (${normalValue}g)` : "No normal items", normals.length > 0);
+
+  drawBag();
+  const selected = drawDetails();
+  if (selected) drawButton(ACTION_BTN, `Sell ${selected.value}g`);
+  else drawEmptyDetails("Select an item to sell it.", "Legendary items are worth 5\u00d7 a normal one.");
 }
 
 function drawHelp(): void {
@@ -841,7 +931,7 @@ function drawHelp(): void {
   drawText("Mouse, A/D or ←/→: move the marker", left, py + 112, 16, "#f5e6c8", "left");
   drawText("SPACE or click: strike (hits only count in the golden zone)", left, py + 134, 16, "#f5e6c8", "left");
   drawText("S or ↓: reheat the blade in the forge      H: help      I: inventory", left, py + 156, 16, "#f5e6c8", "left");
-  drawText("Finished items go to your Inventory, where you can equip or sell them.", left, py + 178, 16, "#f5e6c8", "left");
+  drawText("Finished items go to your Inventory (equip them) and sell at the Trade Market.", left, py + 178, 16, "#f5e6c8", "left");
 
   drawText("Item tiers", left, py + 218, 20, "#e0a030", "left");
   drawText("Every item you forge has a tier, revealed only once it is finished.", left, py + 245, 16, "#f5e6c8", "left");
@@ -893,7 +983,7 @@ function drawScreen(): void {
     drawText(endReason, W / 2, 170, 52);
     const legendaryNote = legendaries > 0 ? ` (${legendaries} legendary)` : "";
     drawText(`You forged ${swords} swords${legendaryNote}.`, W / 2, 230, 24);
-    drawText("Find them in your Inventory to equip or sell.", W / 2, 266, 20, "#b8a888");
+    drawText("Equip them in your Inventory or sell them at the Trade Market.", W / 2, 266, 20, "#b8a888");
     drawText("Press SPACE or click to forge again", W / 2, 340, 24, "#ffb347");
   }
 }

@@ -83,6 +83,16 @@ export function sell(id: number): void {
   persist();
 }
 
+// Sells every bag item matching `filter`. Returns how many were sold and for how much.
+export function sellAll(filter: (item: Item) => boolean): { count: number; total: number } {
+  const sold = inventory.items.filter(filter);
+  const total = sold.reduce((sum, i) => sum + i.value, 0);
+  inventory.items = inventory.items.filter((i) => !filter(i));
+  inventory.gold += total;
+  persist();
+  return { count: sold.length, total };
+}
+
 // Equips an item from the bag; whatever was in that slot goes back to the bag.
 export function equip(id: number): void {
   const item = inventory.items.find((i) => i.id === id);
