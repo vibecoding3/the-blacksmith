@@ -10,14 +10,18 @@ import { save } from "../save";
 import { app, drawButton, drawPanel, drawText, drawTitle, inRect, input, type Point, type Rect } from "../ui";
 import { DETAILS, bag, cellHit, drawBag, drawCell, drawDetails, drawEmptyDetails, drawTooltip, hoveredBagItem } from "./bag";
 
-const SIDE_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
-// Equipment slots in three columns: armor on the left, jewelry on the right, and the
-// weapon and off-hand at the bottom of the centre column, between the two.
-const slotAt = (col: number, row: number): Rect => ({ x: 54 + col * 78, y: 164 + row * 80, w: 56, h: 56 });
+const SIDE_PANEL: Rect = { x: 40, y: 95, w: 260, h: 385 };
+// Equipment slots: armor down the left, jewelry down the right, and the weapon and off-hand
+// side by side in the bottom row between them.
+const SLOT = 52;
+const slotAt = (x: number, row: number): Rect => ({ x, y: 164 + row * 80, w: SLOT, h: SLOT });
+const LEFT_X = SIDE_PANEL.x + 12;
+const RIGHT_X = SIDE_PANEL.x + SIDE_PANEL.w - 12 - SLOT;
+const CENTRE = SIDE_PANEL.x + SIDE_PANEL.w / 2;
 const SLOT_RECTS: Record<Slot, Rect> = {
-  head: slotAt(0, 0), chest: slotAt(0, 1), legs: slotAt(0, 2), feet: slotAt(0, 3),
-  weapon: slotAt(1, 2), offhand: slotAt(1, 3),
-  necklace: slotAt(2, 0), bracelet: slotAt(2, 1), ring1: slotAt(2, 2), ring2: slotAt(2, 3),
+  head: slotAt(LEFT_X, 0), chest: slotAt(LEFT_X, 1), legs: slotAt(LEFT_X, 2), feet: slotAt(LEFT_X, 3),
+  weapon: slotAt(CENTRE - 6 - SLOT, 3), offhand: slotAt(CENTRE + 6, 3),
+  necklace: slotAt(RIGHT_X, 0), bracelet: slotAt(RIGHT_X, 1), ring1: slotAt(RIGHT_X, 2), ring2: slotAt(RIGHT_X, 3),
 };
 const EQUIP_BTN: Rect = { x: DETAILS.x + DETAILS.w - 98, y: DETAILS.y + 10, w: 88, h: 30 };
 const REPAIR_BTN: Rect = { x: DETAILS.x + DETAILS.w - 98, y: DETAILS.y + 46, w: 88, h: 30 };
@@ -86,7 +90,7 @@ export function drawInventory(): void {
   drawText("Equipment", SIDE_PANEL.x + SIDE_PANEL.w / 2, SIDE_PANEL.y + 32, 20, "#e0a030");
   for (const slot of SLOTS) {
     const r = SLOT_RECTS[slot];
-    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 13, "#b8a888");
+    drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 12, "#b8a888");
     drawCell(r, save.equipped[slot], "empty");
   }
 

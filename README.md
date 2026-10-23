@@ -158,6 +158,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v26** – In the Inventory, the Weapon and Off-hand slots now sit side by side (weapon on the left) in the bottom row between the armor and jewelry columns.
 - **v25** – New armor: **Pants** and **Shoes**, with their own equipment slots. The Inventory's equipment panel now has armor on the left (Head, Chest, Pants, Shoes), jewelry on the right, and the Weapon and Off-hand at the bottom centre between them. Keys 9 and 0 now pick Pants and Shoes; horseshoes and nails are chosen from the item bar.
 - **v24** – The big update:
   - **Metals and materials:** copper, iron, steel, silver, gold and mithril, each with real working temperatures, quench windows, value and strength. Forging uses ore; buy ore and gems at the Trade Market or find them in dungeons.
