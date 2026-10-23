@@ -51,6 +51,8 @@ let messageTimer = 0;
 let hammerAnim = 0; // 1 right after a strike, decays to 0
 let sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 let best = Number(safeGet("blacksmith-best") ?? 0);
+const logo = new Image();
+logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
 
 function safeGet(key: string): string | null {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -345,7 +347,8 @@ function render(): void {
 
 function drawScreen(): void {
   if (state === "menu") {
-    drawText("Blacksmith Simulator", W / 2, 110, 48);
+    if (logo.complete && logo.naturalWidth > 0) ctx.drawImage(logo, W / 2 - 45, 20, 90, 90);
+    drawText("Blacksmith Simulator", W / 2, 150, 48);
     drawText("Steer the marker with A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);

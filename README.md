@@ -1,5 +1,7 @@
 # Blacksmith Simulator
 
+<img src="public/favicon.svg" alt="Blacksmith Simulator logo" width="96">
+
 A small browser game written in TypeScript. Forge as many swords as you can in 60 seconds by striking the hot blade at just the right spot.
 
 **Play it here:** https://vibecoding3.github.io/the-blacksmith/
@@ -41,6 +43,7 @@ npm run preview  # serve the built dist/ folder
 | --- | --- |
 | `index.html` | Page and game canvas |
 | `src/main.ts` | All game code: state, input, update loop and drawing |
+| `public/favicon.svg` | Logo, used as the browser-tab icon and on the start screen |
 | `VERSION` | Build number shown in the game |
 | `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
 | `.github/workflows/deploy.yml` | Builds and publishes the game to GitHub Pages |
@@ -57,6 +60,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v5** – Added the crossed hammer-and-sword logo as the browser-tab icon and on the start screen.
 - **v4** – Realistic heat: the blade's temperature is tracked in °C (forged at 1200 °C, too cold below 800 °C) and shown next to the HEAT gauge, and the blade glows in real steel heat colours.
 - **v3** – Heating system: the blade cools over time and with each strike, cooler metal has a smaller golden zone and earns less, and you reheat it in the forge with S or ↓.
 - **v2** – You steer the marker yourself with A/D or the arrow keys. The version number is shown in-game. Added this README.
