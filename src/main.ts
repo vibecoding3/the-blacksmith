@@ -20,7 +20,7 @@ const FPS = 60;
 const FRAME_MS = 1000 / FPS;
 
 const ROUND_TIME = 60; // seconds
-const START_ENERGY = 100; // each hammer swing, hit or miss, costs 1
+const BASE_MAX_ENERGY = 100; // each hammer swing, hit or miss, costs 1
 const LEGENDARY_PRICE_MULTIPLIER = 5;
 const LEGENDARY_COLOR = "#ff9f1c";
 const STRIKES_PER_SWORD = 3;
@@ -108,7 +108,8 @@ let messageColor = "#ffe080";
 let hammerAnim = 0; // 1 right after a strike, decays to 0
 let sparks: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 let best = Number(safeGet("blacksmith-best") ?? 0);
-let energy = START_ENERGY;
+let maxEnergy = BASE_MAX_ENERGY; // can be raised later (e.g. by upgrades)
+let energy = maxEnergy;
 let legendaryChance = 0.05; // chance (0..1) that a finished sword turns out legendary
 let legendaries = 0;
 let endReason = ""; // headline on the game-over screen
@@ -145,7 +146,7 @@ function startGame(): void {
   state = "playing";
   timeLeft = ROUND_TIME;
   gold = 0;
-  energy = START_ENERGY;
+  energy = maxEnergy;
   legendaries = 0;
   swords = 0;
   strikes = [];
@@ -483,7 +484,7 @@ function drawScreen(): void {
     drawText("Steer the marker with the mouse, A/D or the arrow keys,", W / 2, 360, 20);
     drawText("then press SPACE or click to strike in the golden zone.", W / 2, 385, 20);
     drawText("The blade cools down: press S or ↓ to reheat it in the forge.", W / 2, 410, 20);
-    drawText(`3 hits forge a sword. You have ${ROUND_TIME} seconds and ${START_ENERGY} energy (1 per swing).`, W / 2, 435, 20);
+    drawText(`3 hits forge a sword. You have ${ROUND_TIME} seconds and ${maxEnergy} energy (1 per swing).`, W / 2, 435, 20);
     drawText("Press SPACE or click to start", W / 2, 475, 24, "#ffb347");
     return;
   }
@@ -492,7 +493,7 @@ function drawScreen(): void {
   drawText(`Swords: ${swords}`, 20, 72, 20, "#f5e6c8", "left");
   drawBolt(18, 84, 22);
   drawText(`★ ${Math.round(legendaryChance * 100)}% legendary`, 20, 134, 18, LEGENDARY_COLOR, "left");
-  drawText(`${energy}`, 44, 103, 20, energy <= 10 ? "#ff6040" : "#ffd60a", "left");
+  drawText(`${energy}/${maxEnergy}`, 44, 103, 20, "#ffd60a", "left");
   drawText(`${Math.ceil(timeLeft)}s`, W - 20, 40, 26, timeLeft < 10 ? "#ff6040" : "#f5e6c8", "right");
   drawText(`Best: ${best}`, W - 20, 72, 18, "#b8a888", "right");
 

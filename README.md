@@ -19,7 +19,7 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 - The strike bar has the shape of the item you are forging (a sword for now). Steer the marker into the golden zone on the blade and strike. Only hits inside the zone count: a strike outside it ("Miss!") does nothing to the blade.
 - Three hits forge a sword, which sells automatically. Swords hammered on hotter metal sell for more gold (up to 100g).
 - **Legendary swords:** every finished sword has a chance to turn out legendary, shown as the orange ★ stat under your energy (5% for now). You only find out when the sword is done. A legendary sword sells for 5× the normal price.
-- **Energy:** you start each round with 100 energy, shown by the yellow lightning bolt under your sword count. Every hammer swing costs 1 energy, whether it hits, misses or lands on cold metal. At 0 energy you can't forge any more and the round ends, even if time is left.
+- **Energy:** you start each round with 100 energy, shown by the yellow lightning bolt under your sword count as current/maximum (e.g. 50/100). Every hammer swing costs 1 energy, whether it hits, misses or lands on cold metal. At 0 energy you can't forge any more and the round ends, even if time is left.
 - The golden zone gets smaller with every sword you finish.
 - **Heat:** the blade's temperature in °C is shown on the HEAT gauge on the right. The blade cools by about 30 °C per second in the air and 60 °C per strike.
   - Temperatures follow real steel forging: the forge brings the blade to a **yellow 1200 °C**, and it glows orange, then cherry red as it cools. The blade and gauge change colour to match.
@@ -67,6 +67,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v14** – The energy counter shows your maximum as well (e.g. 50/100) and no longer turns red when low.
 - **v13** – Fixed 1280×720 resolution (16:9) and a 60 fps frame cap.
 - **v12** – The strike bar is now shaped like a sword (pommel, grip, crossguard and blade); the golden zone and marker stay on the blade.
 - **v11** – Legendary swords: each finished sword has a 5% chance (shown as a ★ stat) to be legendary and sell for 5× the price, revealed when the sword is done.
