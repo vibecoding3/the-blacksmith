@@ -8,6 +8,8 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 
 ## How to play
 
+The menu bar on the left switches between the **Forge** (where you make items) and your **Inventory**. Your gold is shown under the menu buttons. The forge pauses while you're in another menu or reading help.
+
 | Key | Action |
 | --- | --- |
 | `A` / `←` | Move the marker left |
@@ -15,10 +17,13 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
 | Mouse | Move the pointer left or right: the marker follows it |
 | `Space` / click | Strike the blade (also starts a new round) |
 | `S` / `↓` | Put the blade back in the forge to reheat it |
-| `H` / **?** button | Open or close the help panel (pauses the game) |
+| `H` / **? Help** button | Open or close the help panel (pauses the game) |
+| `I` / sidebar | Switch between the **Forge** and **Inventory** menus |
 
 - The strike bar has the shape of the item you are forging (a sword for now). Steer the marker into the golden zone on the blade and strike. Only hits inside the zone count: a strike outside it ("Miss!") does nothing to the blade.
-- **Hits and heats:** bigger items need more hits. A sword takes **5 hits over 2 heats**: 3 hits on the first heat, then you must put the blade back in the forge (S or ↓), then 2 more hits. The pips under the bar show your progress, with a flame between the heats. A finished sword sells automatically; swords hammered on hotter metal sell for more gold (up to 100g).
+- **Hits and heats:** bigger items need more hits. A sword takes **5 hits over 2 heats**: 3 hits on the first heat, then you must put the blade back in the forge (S or ↓), then 2 more hits. The pips under the bar show your progress, with a flame between the heats. Swords hammered on hotter metal are worth more gold (up to 100g).
+- **Inventory:** finished swords go to your inventory (24 slots) instead of being sold. Open **Inventory** to see them, click one to select it, then **Equip** it on your blacksmith or **Sell** it for its value. Selling is the only way to earn gold. If the inventory is full, a newly forged sword is sold automatically. Your gold, items and equipment are saved in your browser.
+- **Equipment:** for now you can equip one sword in the **Weapon** slot. Equipping another sword swaps them.
 - **Item tiers:** every item you forge is either **Normal** or **★ Legendary**, revealed only when it's finished. The in-game help (**?** button or H) explains them.
 - **Legendary swords:** every finished sword has a chance to turn out legendary, shown as the orange ★ stat under your energy (5% for now). You only find out when the sword is done. A legendary sword sells for 5× the normal price.
 - **Energy:** you start each round with 100 energy, shown by the yellow lightning bolt under your sword count as current/maximum (e.g. 50/100). Every hammer swing costs 1 energy, whether it hits, misses or lands on cold metal. At 0 energy you can't forge any more and the round ends, even if time is left.
@@ -29,7 +34,6 @@ A small browser game written in TypeScript. Forge as many swords as you can in 6
   - Below **800 °C** (cherry red, the blue line) the steel is too cold to shape, and strikes do nothing. Real smiths stop hammering here because the steel can crack.
   - Press `S` or `↓` to reheat. The blade stays in the forge until it is fully hot, and you can't move or strike meanwhile. The colder it is, the longer this takes.
   - Each new sword starts fully hot.
-- Your best score is saved in your browser.
 
 ## Display
 
@@ -51,7 +55,8 @@ npm run preview  # serve the built dist/ folder
 | Path | Purpose |
 | --- | --- |
 | `index.html` | Page and game canvas |
-| `src/main.ts` | All game code: state, input, update loop and drawing |
+| `src/main.ts` | Game code: forging, menus, input, update loop and drawing |
+| `src/items.ts` | Inventory, equipment and gold, saved in the browser |
 | `public/favicon.svg` | Logo, used as the browser-tab icon and on the start screen |
 | `VERSION` | Build number shown in the game |
 | `vite.config.ts` | Build settings (GitHub Pages path, version injection) |
@@ -69,6 +74,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v17** – Inventory system and a menu bar on the left with **Forge** and **Inventory**. Forged swords go to your inventory instead of being sold automatically; you choose what to equip or sell. Gold, items and equipment are saved between visits. The help button moved to the menu bar, and the per-round best score was removed.
 - **v16** – Items need a set number of hits spread over heat cycles. A sword now takes 5 hits over 2 heats (3 + 2), with a required reheat in between. Clicking strikes exactly where you click.
 - **v15** – Help button (**?**) in the top-right corner, also opened with H. It pauses the game and explains the controls and the item tiers (Normal and Legendary).
 - **v14** – The energy counter shows your maximum as well (e.g. 50/100) and no longer turns red when low.
