@@ -62,6 +62,7 @@ const g = () => save.guild;
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
 export const rankName = (r: number) => `${RANKS[r]}-rank`;
 const article = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
+const pairs: ItemType[] = ["pants", "shoes"]; // "a pair of Steel Pants"
 
 // ---- Registration ----
 
@@ -123,7 +124,7 @@ function makeQuest(rank: number, kind: QuestKind): Quest {
       const minValue = Math.round(computeValue(itemType, metal, undefined, 1, 0, 0, false) * 0.4);
       const label = forgeItemFor(itemType).label;
       const name = `${METALS[metal].label} ${label}`;
-      return { ...base, title: `Arms: ${label}`, objective: `Deliver ${article(name)} ${name} worth at least ${minValue}g.`, target: 1,
+      return { ...base, title: `Arms: ${label}`, objective: `Deliver ${pairs.includes(itemType) ? "a pair of" : article(name)} ${name} worth at least ${minValue}g.`, target: 1,
         itemType, metal, minValue, reward: { ...base.reward, gold: Math.round(gold * 1.2) + minValue } };
     }
     case "legendary":

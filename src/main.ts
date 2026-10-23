@@ -226,8 +226,12 @@ function render(): void {
 
 // ---- Sidebar (screen pixels) ----
 
+// Logo, then the player's gold, then the menu buttons.
+const LOGO_SIZE = 56;
+const GOLD_Y = 88; // text baseline of the gold counter
+const TAB_TOP = 104;
 const TAB_STEP = 48;
-const TAB_RECTS: Rect[] = TABS.map((_, i) => ({ x: 14, y: 90 + i * TAB_STEP, w: SIDEBAR_W - 28, h: 40 }));
+const TAB_RECTS: Rect[] = TABS.map((_, i) => ({ x: 14, y: TAB_TOP + i * TAB_STEP, w: SIDEBAR_W - 28, h: 40 }));
 const HELP_RECT: Rect = { x: 14, y: SCREEN_H - 62, w: SIDEBAR_W - 28, h: 44 };
 const logo = new Image();
 logo.src = `${import.meta.env.BASE_URL}favicon.svg`;
@@ -264,25 +268,31 @@ function drawSidebar(): void {
   ctx.fillStyle = "#3a2a22";
   ctx.fillRect(SIDEBAR_W - 2, 0, 2, SCREEN_H);
 
-  if (logo.complete && logo.naturalWidth > 0) ctx.drawImage(logo, SIDEBAR_W / 2 - 32, 14, 64, 64);
+  if (logo.complete && logo.naturalWidth > 0) ctx.drawImage(logo, SIDEBAR_W / 2 - LOGO_SIZE / 2, 8, LOGO_SIZE, LOGO_SIZE);
+
+  // Gold, centred under the logo: a coin followed by the amount
+  const goldText = `${save.gold}`;
+  const coinR = 9;
+  const goldX = SIDEBAR_W / 2 - (coinR * 2 + 6 + textWidth(goldText, 20)) / 2;
+  ctx.beginPath();
+  ctx.arc(goldX + coinR, GOLD_Y - 7, coinR, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd700";
+  ctx.fill();
+  drawText(goldText, goldX + coinR * 2 + 6, GOLD_Y, 20, "#ffd700", "left");
+
   TABS.forEach((t, i) => {
     // A dot on menus that need attention: unspent perk points, or a dungeon fight in progress elsewhere.
     const badge = (t.id === "blacksmith" && perkPoints() > 0) || (t.id === "dungeon" && battle !== null && app.tab !== "dungeon");
     drawSidebarButton(TAB_RECTS[i], t.label, app.tab === t.id, badge);
   });
 
-  // Gold and level live in the sidebar: they matter on every screen
-  const gy = 90 + TABS.length * TAB_STEP + 24;
-  ctx.beginPath();
-  ctx.arc(30, gy - 7, 10, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffd700";
-  ctx.fill();
-  drawText(`${save.gold}g`, 48, gy, 20, "#ffd700", "left");
+  // Level and guild rank below the menu buttons: they matter on every screen
+  const ly = TAB_TOP + TABS.length * TAB_STEP + 20;
   const { level, into, needed } = levelInfo();
-  drawText(`Level ${level}`, 20, gy + 30, 16, "#9fe3ff", "left");
-  drawMeter({ x: 20, y: gy + 38, w: SIDEBAR_W - 40, h: 7 }, into / needed, "#9fe3ff");
-  drawText(`${into}/${needed} XP`, SIDEBAR_W - 20, gy + 30, 11, "#8a7a68", "right");
-  if (save.guild.registered) drawText(`Guild: ${RANKS[save.guild.rank]}-rank`, 20, gy + 66, 14, RANK_COLORS[save.guild.rank], "left");
+  drawText(`Level ${level}`, 20, ly, 16, "#9fe3ff", "left");
+  drawMeter({ x: 20, y: ly + 8, w: SIDEBAR_W - 40, h: 7 }, into / needed, "#9fe3ff");
+  drawText(`${into}/${needed} XP`, SIDEBAR_W - 20, ly, 11, "#8a7a68", "right");
+  if (save.guild.registered) drawText(`Guild: ${RANKS[save.guild.rank]}-rank`, 20, ly + 36, 14, RANK_COLORS[save.guild.rank], "left");
 
   drawSidebarButton(HELP_RECT, "? Help", app.helpOpen);
 }

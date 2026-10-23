@@ -8,7 +8,7 @@ A browser game written in TypeScript. Forge weapons, armor and jewelry from real
 
 ## How to play
 
-The menu bar on the left switches between the game's menus. Your gold and blacksmith level are shown under the menu buttons. The forge pauses while you're in another menu or reading help.
+The menu bar on the left switches between the game's menus. Your gold is shown at the top of the sidebar, under the logo; your blacksmith level and guild rank are shown under the menu buttons. The forge pauses while you're in another menu or reading help.
 
 | Menu | What it's for |
 | --- | --- |
@@ -207,6 +207,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v31** – Your gold is now shown at the top of the sidebar, under the logo and above the menu buttons, as a plain number next to the coin.
 - **v30** – New **Adventurer's Guild**: register for a license, take quests from a daily board (hunts, dungeon subjugations, mining, supplies, smithing, arms deliveries, masterworks), earn gold, XP and guild points, and pass promotion exams to rise from F-rank to S-rank. Higher ranks unlock more quest slots, bigger reward bonuses and harder quests. The sidebar buttons are slightly smaller to fit nine menus, and your guild rank is shown under your level.
 - **v29** – Mine changes: the target rings and double damage are gone (every swing does the same damage). The whole rock wall is visible from the start, but you can only dig rocks in the top row or next to one you have broken, so you dig a path down to the rare ore.
 - **v28** – New **Mine** menu: dig your own ore and gems in a daily rock wall (40 pickaxe swings per day). Breaking rocks reveals deeper ones, which hold rarer ore; hitting a rock's target ring does double damage. Includes a smelter (2 iron → 1 steel) and a new **Steel Pickaxe** workshop upgrade. The Workshop now shows its upgrades in a 2 × 4 grid.
