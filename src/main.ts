@@ -3,7 +3,7 @@
 import { BAR, FORGE_ITEMS, type ForgeItem } from "./forgeItems";
 import { drawItemIcon } from "./icons";
 import {
-  DESCRIPTIONS, INVENTORY_SIZE, LEGENDARY_COLOR, SLOT_FOR_TYPE, SLOT_LABELS, addGold, addItem, equip, equippedSlotOf, findItem, inventory,
+  DESCRIPTIONS, INVENTORY_SIZE, LEGENDARY_COLOR, SLOT_LABELS, canEquipType, equipKind, addGold, addItem, equip, equippedSlotOf, findItem, inventory,
   itemName, sell, sellAll, unequip, type Item, type Slot, type Tier,
 } from "./items";
 
@@ -692,11 +692,11 @@ function drawSidebar(): void {
 
 const GRID = { x: 310, y: 95, cell: 64, gap: 10, cols: 6 };
 const SIDE_PANEL: Rect = { x: 40, y: 95, w: 240, h: 385 };
+// Equipment slots in two columns: armor and hands on the left, jewelry on the right.
+const slotAt = (col: number, row: number): Rect => ({ x: 84 + col * 96, y: 164 + row * 80, w: 56, h: 56 });
 const SLOT_RECTS: Record<Slot, Rect> = {
-  head: { x: 194, y: 152, w: 56, h: 56 },
-  chest: { x: 194, y: 234, w: 56, h: 56 },
-  weapon: { x: 194, y: 316, w: 56, h: 56 },
-  offhand: { x: 194, y: 398, w: 56, h: 56 },
+  head: slotAt(0, 0), chest: slotAt(0, 1), weapon: slotAt(0, 2), offhand: slotAt(0, 3),
+  necklace: slotAt(1, 0), bracelet: slotAt(1, 1), ring1: slotAt(1, 2), ring2: slotAt(1, 3),
 };
 const DETAILS: Rect = { x: 310, y: 395, w: 434, h: 85 };
 const ACTION_BTN: Rect = { x: 646, y: 427, w: 88, h: 34 }; // Equip/Unequip in the inventory, Sell in the market
@@ -725,7 +725,7 @@ function inventoryHit(p: Point): InventoryHit | null {
 
 function canEquipOrUnequip(id: number): boolean {
   const it = findItem(id);
-  return it !== undefined && (equippedSlotOf(id) !== undefined || SLOT_FOR_TYPE[it.type] !== undefined);
+  return it !== undefined && (equippedSlotOf(id) !== undefined || canEquipType(it.type));
 }
 
 function inventoryClick(p: Point): void {
@@ -817,20 +817,9 @@ function drawPanel(r: Rect): void {
 function drawInventory(): void {
   drawText("Inventory", 40, 60, 34, "#f5e6c8", "left");
 
-  // Equipment: the blacksmith with an equipment slot per item kind
+  // Equipment slots
   drawPanel(SIDE_PANEL);
   drawText("Equipment", SIDE_PANEL.x + SIDE_PANEL.w / 2, SIDE_PANEL.y + 32, 20, "#e0a030");
-  ctx.fillStyle = "#5a4a44";
-  ctx.beginPath();
-  ctx.arc(120, 175, 22, 0, Math.PI * 2); // head
-  ctx.fill();
-  ctx.beginPath();
-  ctx.roundRect(98, 202, 44, 92, 8); // body
-  ctx.roundRect(80, 206, 16, 72, 6); // arms
-  ctx.roundRect(144, 206, 16, 72, 6);
-  ctx.roundRect(100, 296, 18, 84, 6); // legs
-  ctx.roundRect(122, 296, 18, 84, 6);
-  ctx.fill();
   for (const slot of Object.keys(SLOT_RECTS) as Slot[]) {
     const r = SLOT_RECTS[slot];
     drawText(SLOT_LABELS[slot], r.x + r.w / 2, r.y - 8, 14, "#b8a888");
@@ -862,8 +851,7 @@ function drawDetails(): Item | undefined {
   if (selected) {
     const legendary = selected.tier === "legendary";
     drawText(itemName(selected), DETAILS.x + 16, DETAILS.y + 30, 20, legendary ? LEGENDARY_COLOR : "#f5e6c8", "left");
-    const slot = SLOT_FOR_TYPE[selected.type];
-    const kind = slot ? SLOT_LABELS[slot] : "Trade good";
+    const kind = equipKind(selected.type);
     drawText(`${legendary ? "\u2605 Legendary" : "Normal"} \u00b7 ${kind} \u00b7 worth ${selected.value}g`, DETAILS.x + 16, DETAILS.y + 56, 15, "#b8a888", "left");
   }
   return selected;
@@ -884,10 +872,9 @@ function hoveredBagItem(): Item | undefined {
 function drawTooltip(it: Item | undefined): void {
   if (!it || helpOpen) return;
   const legendary = it.tier === "legendary";
-  const slot = SLOT_FOR_TYPE[it.type];
   const lines: { text: string; size: number; color: string }[] = [
     { text: itemName(it), size: 16, color: legendary ? LEGENDARY_COLOR : "#f5e6c8" },
-    { text: `${legendary ? "★ Legendary" : "Normal"} · ${slot ? SLOT_LABELS[slot] : "Trade good"}`, size: 12, color: "#b8a888" },
+    { text: `${legendary ? "★ Legendary" : "Normal"} · ${equipKind(it.type)}`, size: 12, color: "#b8a888" },
     { text: DESCRIPTIONS[it.type], size: 13, color: "#f5e6c8" },
     { text: `Worth ${it.value}g`, size: 13, color: "#ffd700" },
   ];

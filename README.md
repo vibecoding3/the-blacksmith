@@ -27,7 +27,7 @@ The menu bar on the left switches between the **Forge** (where you make items), 
 - **Inventory:** finished swords go to your inventory (24 slots) instead of being sold. Open **Inventory** to see them, click one to select it, then **Equip** it on your blacksmith.
 - **Trade Market:** the place to sell. Select an item and press **Sell**, or use **Sell all normal** to sell every normal item at once (legendary items are kept). Equipped items can't be sold until you unequip them. Selling is the only way to earn gold. If the inventory is full, a newly forged sword is sold automatically. Your gold, items and equipment are saved in your browser.
 - **Tooltips:** hover over any item in the Inventory or Trade Market to see its name, tier, slot, description and value.
-- **Equipment:** the blacksmith has four slots: **Head**, **Chest**, **Weapon** and **Off-hand**. Equipping an item swaps it with whatever was in that slot. Trade goods can't be equipped.
+- **Equipment:** eight slots: **Head**, **Chest**, **Weapon**, **Off-hand**, **Necklace**, **Bracelet** and two **Rings**. Equipping an item swaps it with whatever was in that slot (an item that fits two slots, like a ring, uses a free one first). No jewelry can be forged yet, so the jewelry slots stay empty for now. Trade goods can't be equipped.
 
 ### Items
 
@@ -97,6 +97,7 @@ Every push to `main` runs the GitHub Actions workflow, which builds the game and
 
 ## Changelog
 
+- **v22** – The Inventory no longer shows the blacksmith figure. New equipment slots: **Necklace**, **Bracelet** and two **Rings** (jewelry items to fill them will come later).
 - **v21** – Hovering over an item in the Inventory (bag or equipment slots) or the Trade Market shows a tooltip with its name, tier, slot, a short description and its value. Item stats will be added to it later.
 - **v20** – Equipped items are no longer drawn on the blacksmith figure in the Inventory; they are shown only in their equipment slots.
 - **v19** – Nine new items to forge: dagger, axe, spear, greatsword, helmet, shield, chestplate, horseshoe and nails, each with its own strike-bar shape, hits, heats, value and cooling. New item bar (keys 1–9, 0) to choose what to forge. New **Head**, **Chest** and **Off-hand** equipment slots; trade goods can only be sold.

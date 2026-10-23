@@ -5,17 +5,31 @@ export type ItemType =
   | "sword" | "dagger" | "axe" | "spear" | "greatsword" // weapons
   | "helmet" | "shield" | "chestplate" // armor
   | "horseshoe" | "nails"; // trade goods (sell only)
-export type Slot = "head" | "chest" | "weapon" | "offhand";
+export type Slot = "head" | "chest" | "weapon" | "offhand" | "necklace" | "bracelet" | "ring1" | "ring2";
 export type Tier = "normal" | "legendary";
 
 export const LEGENDARY_COLOR = "#ff9f1c";
 
-// Which slot each item type is worn in; trade goods have none.
-export const SLOT_FOR_TYPE: Partial<Record<ItemType, Slot>> = {
-  sword: "weapon", dagger: "weapon", axe: "weapon", spear: "weapon", greatsword: "weapon",
-  helmet: "head", chestplate: "chest", shield: "offhand",
+// Which slots each item type can be worn in (first free one is used); trade goods have none.
+// No jewelry can be forged yet, so the necklace, bracelet and ring slots stay empty for now.
+const SLOTS_FOR_TYPE: Partial<Record<ItemType, Slot[]>> = {
+  sword: ["weapon"], dagger: ["weapon"], axe: ["weapon"], spear: ["weapon"], greatsword: ["weapon"],
+  helmet: ["head"], chestplate: ["chest"], shield: ["offhand"],
 };
-export const SLOT_LABELS: Record<Slot, string> = { head: "Head", chest: "Chest", weapon: "Weapon", offhand: "Off-hand" };
+export const SLOT_LABELS: Record<Slot, string> = {
+  head: "Head", chest: "Chest", weapon: "Weapon", offhand: "Off-hand",
+  necklace: "Necklace", bracelet: "Bracelet", ring1: "Ring 1", ring2: "Ring 2",
+};
+
+export function canEquipType(type: ItemType): boolean {
+  return (SLOTS_FOR_TYPE[type]?.length ?? 0) > 0;
+}
+
+// What kind of equipment an item is ("Weapon", "Ring", ...), or "Trade good".
+export function equipKind(type: ItemType): string {
+  const slot = SLOTS_FOR_TYPE[type]?.[0];
+  return slot ? SLOT_LABELS[slot].replace(/ \d$/, "") : "Trade good";
+}
 const TYPE_NAMES: Record<ItemType, string> = {
   sword: "Sword", dagger: "Dagger", axe: "Axe", spear: "Spear", greatsword: "Greatsword",
   helmet: "Helmet", shield: "Shield", chestplate: "Chestplate", horseshoe: "Horseshoe", nails: "Nails",
@@ -122,8 +136,9 @@ export function sellAll(filter: (item: Item) => boolean): { count: number; total
 export function equip(id: number): void {
   const item = inventory.items.find((i) => i.id === id);
   if (!item) return;
-  const slot = SLOT_FOR_TYPE[item.type];
-  if (!slot) return; // trade goods can't be equipped
+  const slots = SLOTS_FOR_TYPE[item.type];
+  if (!slots) return; // trade goods can't be equipped
+  const slot = slots.find((s) => !inventory.equipped[s]) ?? slots[0]; // e.g. the free ring slot
   const previous = inventory.equipped[slot];
   inventory.items = inventory.items.filter((i) => i.id !== id);
   if (previous) inventory.items.push(previous);
